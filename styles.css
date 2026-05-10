@@ -470,15 +470,30 @@ html.minigame-active body {
     font-size: 0.9rem;
   }
   .log-panel.inventory-dock {
-    width: min(158px, calc(100vw - 0.75rem - env(safe-area-inset-left)));
-    max-height: min(32vh, 220px);
-    padding: 0.4rem 0.45rem 0.5rem;
+    width: min(132px, calc(100vw - 0.75rem - env(safe-area-inset-left)));
+    max-height: min(26vh, 172px);
+    padding: 0.32rem 0.34rem 0.36rem;
+    gap: 0.22rem;
+  }
+  .inventory-dock .log-title {
+    font-size: 0.7rem;
   }
   .inventory-dock .inv-scroll-wrap {
-    max-height: min(26vh, 168px);
+    max-height: min(20vh, 124px);
+    padding: 0.08rem 0.12rem 0.12rem;
   }
   .inventory-dock .inv-item {
-    gap: 0.28rem;
+    gap: 0.2rem;
+    font-size: 0.62rem;
+    padding: 0.12rem 0.16rem;
+  }
+  .inventory-dock .inv-thumb {
+    width: 2rem;
+    height: 2rem;
+  }
+  .inventory-dock .sell-all-btn {
+    font-size: 0.6rem;
+    padding: 0.16rem 0.35rem;
   }
   .cast-btn {
     font-size: 0.95rem;
@@ -537,16 +552,23 @@ html.minigame-active body {
     padding: 0.52rem 0.9rem;
   }
   .log-panel.inventory-dock {
-    width: min(144px, calc(100vw - 0.62rem - env(safe-area-inset-left)));
-    max-height: min(28vh, 188px);
+    width: min(118px, calc(100vw - 0.62rem - env(safe-area-inset-left)));
+    max-height: min(22vh, 142px);
   }
   .inventory-dock .inv-thumb {
-    width: 2.45rem;
-    height: 2.45rem;
+    width: 1.72rem;
+    height: 1.72rem;
   }
   .inventory-dock .inv-item {
-    font-size: 0.68rem;
-    padding: 0.16rem 0.24rem;
+    font-size: 0.56rem;
+    padding: 0.08rem 0.12rem;
+    gap: 0.14rem;
+  }
+  .inventory-dock .log-title {
+    font-size: 0.64rem;
+  }
+  .inventory-dock .inv-scroll-wrap {
+    max-height: min(17vh, 96px);
   }
 }
 
