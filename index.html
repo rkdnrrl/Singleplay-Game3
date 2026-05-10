@@ -71,6 +71,18 @@
   </section>
 
   <!-- 포획 결과 카드 (보관함 도킹보다 위) -->
+  <!-- 판매 확인 (개별·전체) -->
+  <div class="sell-confirm-overlay hidden" id="sellConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="sellConfirmTitle">
+    <div class="sell-confirm-box">
+      <h3 class="sell-confirm-title" id="sellConfirmTitle">판매 확인</h3>
+      <p class="sell-confirm-msg" id="sellConfirmMsg"></p>
+      <div class="sell-confirm-actions">
+        <button type="button" class="sell-confirm-btn sell-confirm-btn--cancel" id="sellConfirmCancel">취소</button>
+        <button type="button" class="sell-confirm-btn sell-confirm-btn--ok" id="sellConfirmOk">팔기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="result-card hidden" id="resultCard">
     <div class="result-preview">
       <div class="result-sprite-host" id="resultSpriteHost" aria-hidden="true"></div>

@@ -249,6 +249,72 @@ html.minigame-active body {
 .result-coins { font-family: "Jua", sans-serif; font-size: 1.15rem; color: var(--coin); white-space: nowrap; }
 .result-added { font-size: 0.68rem; color: rgba(128,222,234,0.7); margin-top: 0.1rem; }
 
+/* 판매 확인 모달 */
+.sell-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+.sell-confirm-box {
+  width: 100%;
+  max-width: 22rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1.1rem 1.05rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+.sell-confirm-title {
+  font-family: "Jua", sans-serif;
+  font-size: 1.05rem;
+  color: #e0f7fa;
+  margin: 0 0 0.55rem;
+  text-align: center;
+}
+.sell-confirm-msg {
+  font-family: "Gowun Dodum", sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0 0 1rem;
+  text-align: center;
+  white-space: pre-line;
+}
+.sell-confirm-actions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: stretch;
+}
+.sell-confirm-btn {
+  flex: 1;
+  font-family: "Jua", sans-serif;
+  font-size: 0.88rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.1s, opacity 0.1s;
+}
+.sell-confirm-btn:active { transform: scale(0.97); }
+.sell-confirm-btn--cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.sell-confirm-btn--ok {
+  background: linear-gradient(135deg, #f9a825, #ffd54f);
+  color: #1a1a00;
+  box-shadow: 0 2px 12px rgba(255, 213, 79, 0.35);
+}
+
 /* Inventory */
 .inv-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -369,8 +435,8 @@ html.minigame-active body {
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.42);
   pointer-events: auto;
 }
-/* 미니게임 중: 전체 너비로 겹칠 때만 터치 통과 — 옆 패널 모드에서는 보관함 조작 가능 */
-.inventory-dock.minigame-paused:not(.inventory-dock--beside-minigame) {
+/* 미니게임 중: 페이지 스크롤 차단 시 보관함이 터치를 가로채지 않게 */
+.inventory-dock.minigame-paused {
   pointer-events: none;
 }
 .inventory-dock .inv-header {
@@ -645,98 +711,11 @@ html.minigame-active body {
   white-space: normal;
 }
 
-/* 세로+스트립 + 미니게임 중: 보관함을 오른쪽 세로 띠로 옮겨 낚시 바가 안 가리게 */
-.inventory-dock.inventory-dock--beside-minigame {
-  left: auto;
-  right: max(0.35rem, env(safe-area-inset-right));
-  width: min(7.75rem, 27vw);
-  max-height: min(62vh, 340px);
-  bottom: max(0.35rem, env(safe-area-inset-bottom));
-  padding: 0.28rem 0.32rem 0.34rem;
-  gap: 0.18rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .log-title {
-  font-size: 0.65rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .sell-all-btn {
-  font-size: 0.55rem;
-  padding: 0.12rem 0.28rem;
-  white-space: normal;
-  text-align: center;
-  line-height: 1.2;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-header {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.2rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-scroll-wrap {
-  overflow-x: hidden;
-  overflow-y: auto;
-  touch-action: pan-y;
-  overscroll-behavior-y: contain;
-  scroll-snap-type: none;
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: min(52vh, 280px);
-  padding: 0.12rem 0.14rem 0.18rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .log-list {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  width: 100%;
-  max-width: 100%;
-  gap: 0.32rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .log-empty {
-  padding: 0.45rem 0.2rem;
-  font-size: 0.62rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-item {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 100%;
-  max-width: 100%;
-  text-align: left;
-  gap: 0.18rem;
-  padding: 0.16rem 0.2rem 0.2rem;
-  scroll-snap-align: none;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-thumb {
-  width: 1.75rem;
-  height: 1.75rem;
-  flex-shrink: 0;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-name {
-  flex: 1 1 calc(100% - 2.1rem);
-  min-width: 0;
-  max-height: 2.35em;
-  font-size: 0.54rem;
-  line-height: 1.18;
-  text-align: left;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-coins {
-  width: 100%;
-  font-size: 0.52rem;
-  text-align: center;
-  order: 4;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-sell-btn {
-  width: 100%;
-  max-width: none;
-  order: 5;
-  font-size: 0.5rem;
-  padding: 0.1rem 0.28rem;
-}
-.inventory-dock.inventory-dock--beside-minigame .inv-sell-pending {
-  width: 100%;
-  order: 5;
-  font-size: 0.48rem;
+/* 세로 스트립 + 잡기 미니게임 중: 보관함 숨김 */
+.inventory-dock.inventory-dock--minigame-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 가로 화면(모바일): 왼쪽에 좁은 도킹 유지 */

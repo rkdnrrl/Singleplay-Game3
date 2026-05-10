@@ -1078,7 +1078,13 @@
   const inventoryList       = document.getElementById('inventoryList');
   const inventoryScrollWrap = document.getElementById('inventoryScrollWrap');
   const sellAllBtn          = document.getElementById('sellAllBtn');
+  const sellConfirmOverlay  = document.getElementById('sellConfirmOverlay');
+  const sellConfirmMsg      = document.getElementById('sellConfirmMsg');
+  const sellConfirmCancel   = document.getElementById('sellConfirmCancel');
+  const sellConfirmOk       = document.getElementById('sellConfirmOk');
   const inventoryDock       = document.getElementById('inventoryDock');
+
+  let sellConfirmPayload = null;
 
   /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 보관함이 터치 가로채기 방지 */
   let minigameScrollLocked = false;
@@ -1381,9 +1387,7 @@
     }
     requestAnimationFrame(() => {
       let overflow;
-      if (inventoryDock && inventoryDock.classList.contains('inventory-dock--beside-minigame')) {
-        overflow = wrap.scrollHeight > wrap.clientHeight + 1;
-      } else if (inventoryDock && inventoryDock.classList.contains('inventory-dock--portrait-strip')) {
+      if (inventoryDock && inventoryDock.classList.contains('inventory-dock--portrait-strip')) {
         overflow = wrap.scrollWidth > wrap.clientWidth + 1;
       } else {
         overflow = wrap.scrollHeight > wrap.clientHeight + 1;
@@ -1392,14 +1396,16 @@
     });
   }
 
-  /** 세로+스트립 모드에서 미니게임이 열리면 보관함을 오른쪽으로 붙여 낚시 UI 가림 방지 */
+  /** 세로+스트립 모드에서 잡기 미니게임이 열리면 보관함을 숨겨 낚시 UI를 가리지 않게 함 */
   function syncInventoryDockMinigamePosition() {
     if (!inventoryDock || !minigame || !inventoryScrollWrap) return;
     const strip = inventoryDock.classList.contains('inventory-dock--portrait-strip');
     const miniOpen = !minigame.classList.contains('hidden');
     const next = strip && miniOpen;
-    const was = inventoryDock.classList.contains('inventory-dock--beside-minigame');
-    inventoryDock.classList.toggle('inventory-dock--beside-minigame', next);
+    const was = inventoryDock.classList.contains('inventory-dock--minigame-hidden');
+    inventoryDock.classList.toggle('inventory-dock--minigame-hidden', next);
+    if (next) inventoryDock.setAttribute('aria-hidden', 'true');
+    else inventoryDock.removeAttribute('aria-hidden');
     if (was !== next) {
       inventoryScrollWrap.scrollLeft = 0;
       inventoryScrollWrap.scrollTop = 0;
@@ -1451,6 +1457,31 @@
       inventoryList.appendChild(el);
     });
     syncInventoryScrollOverflow();
+  }
+
+  function closeSellConfirm() {
+    sellConfirmPayload = null;
+    if (sellConfirmOverlay) sellConfirmOverlay.classList.add('hidden');
+  }
+
+  function openSellConfirm(payload) {
+    if (!sellConfirmOverlay || !sellConfirmMsg) return;
+    sellConfirmPayload = payload;
+    if (payload.type === 'one') {
+      const item = inventory.find((i) => i.id === payload.id);
+      sellConfirmMsg.textContent = item
+        ? `「${item.name}」을(를) 정말 파시겠습니까?\n예상 수익 ${item.coins.toLocaleString()}🪙`
+        : '이 아이템을 정말 파시겠습니까?';
+    } else {
+      const withId = inventory.filter((i) => i.id);
+      const n = withId.length;
+      const total = withId.reduce((s, i) => s + (i.coins || 0), 0);
+      sellConfirmMsg.textContent =
+        n > 0
+          ? `보관함의 아이템 ${n}개를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()}🪙`
+          : '팔 수 있는 아이템이 없습니다.';
+    }
+    sellConfirmOverlay.classList.remove('hidden');
   }
 
   async function sellItem(catchId) {
@@ -1840,16 +1871,51 @@
       const btn = e.target.closest('.inv-sell-btn');
       if (!btn || isSelling) return;
       const id = btn.dataset.id;
-      if (id) sellItem(id);
+      if (id) openSellConfirm({ type: 'one', id });
     });
   }
 
   // 전체 팔기
   if (sellAllBtn) {
-    sellAllBtn.addEventListener('click', sellAll);
+    sellAllBtn.addEventListener('click', () => {
+      if (isSelling) return;
+      const ids = inventory.filter((i) => i.id);
+      if (ids.length === 0) return;
+      openSellConfirm({ type: 'all' });
+    });
   }
 
-  /* 보관함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 (미니게임 옆 패널은 세로) */
+  if (sellConfirmCancel) {
+    sellConfirmCancel.addEventListener('click', closeSellConfirm);
+  }
+  if (sellConfirmOverlay) {
+    sellConfirmOverlay.addEventListener('click', (e) => {
+      if (e.target === sellConfirmOverlay) closeSellConfirm();
+    });
+  }
+  if (sellConfirmOk) {
+    sellConfirmOk.addEventListener('click', async () => {
+      const p = sellConfirmPayload;
+      if (!p || isSelling) return;
+      if (p.type === 'all') {
+        const ids = inventory.filter((i) => i.id);
+        if (ids.length === 0) {
+          closeSellConfirm();
+          return;
+        }
+      }
+      closeSellConfirm();
+      if (p.type === 'one') await sellItem(p.id);
+      else await sellAll();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!sellConfirmOverlay || sellConfirmOverlay.classList.contains('hidden')) return;
+    closeSellConfirm();
+  });
+
+  /* 보관함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 */
   (function setupInventoryDragScroll() {
     const wrap = inventoryScrollWrap;
     if (!wrap) return;
@@ -1858,7 +1924,7 @@
       return (
         inventoryDock &&
         inventoryDock.classList.contains('inventory-dock--portrait-strip') &&
-        !inventoryDock.classList.contains('inventory-dock--beside-minigame')
+        !inventoryDock.classList.contains('inventory-dock--minigame-hidden')
       );
     }
 
