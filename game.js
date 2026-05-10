@@ -1683,13 +1683,28 @@
       const a = voxelViewerCtx.animAmp;
       const t = (performance.now() - voxelViewerCtx.animT0) * 0.001;
       if (prof === 'swim') {
-        root.position.x = Math.sin(t * 2.45) * 0.11 * a;
-        root.position.y = Math.sin(t * 4.1) * 0.035 * a;
-        root.position.z = Math.cos(t * 2.45) * 0.045 * a;
-        root.rotation.z = Math.sin(t * 2.85) * 0.15 * a;
-        root.rotation.y = Math.sin(t * 1.32 + 0.5) * 0.12 * a;
-        root.rotation.x = Math.sin(t * 1.05) * 0.05 * a;
-        root.scale.set(1, 1, 1);
+        /* 꼬리·지느러미 박동 + 몸통 물결 + 앞뒤 추진 느낌 */
+        const cruise = t * 1.15;
+        const tailBeat = t * 6.35;
+        const thrust = Math.sin(t * 3.5);
+        const thrustKick = thrust * Math.abs(thrust);
+        root.rotation.z =
+          Math.sin(tailBeat) * 0.26 * a +
+          Math.sin(tailBeat * 2 + 0.55) * 0.085 * a;
+        root.rotation.y =
+          Math.sin(cruise * 1.5 + 0.4) * 0.19 * a +
+          Math.sin(tailBeat * 0.85) * 0.065 * a;
+        root.rotation.x =
+          Math.sin(tailBeat * 0.55 + 1.1) * 0.095 * a +
+          Math.sin(cruise * 2.1) * 0.045 * a;
+        root.position.x =
+          Math.sin(cruise * 1.25) * 0.15 * a + thrustKick * 0.04 * a;
+        root.position.z =
+          Math.cos(cruise * 1.05) * 0.11 * a + thrustKick * 0.12 * a;
+        root.position.y =
+          Math.sin(cruise * 2.15) * 0.048 * a - thrustKick * 0.028 * a;
+        const flex = 1 + Math.sin(tailBeat) * 0.035 * a;
+        root.scale.set(flex, 1 + Math.sin(tailBeat + 0.4) * 0.018 * a, 2 - flex);
       } else if (prof === 'flap') {
         const p = Math.sin(t * 3.35);
         const q = Math.sin(t * 3.35 + 0.9);
