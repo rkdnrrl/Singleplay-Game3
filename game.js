@@ -1007,6 +1007,11 @@
     return n;
   }
 
+  /** 3D 보기: 각 픽셀을 Y축으로 몇 겹 쌓을지(두께) */
+  const VOXEL_EXTRUDE_LAYERS = 4;
+  const VOXEL_LAYER_HEIGHT = 0.86;
+  const VOXEL_PLAN = 0.9;
+
   /** 희귀할수록 판정 타이트·속도↑·게이지 벌칙↑ (전설은 매우 어렵게) */
   const MINI_CONFIG = {
     common: {
@@ -1558,8 +1563,12 @@
     dir.position.set(4, 8, 6);
     scene.add(dir);
 
-    const count = countSolidVoxels(art);
-    const geometry = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+    const layers = Math.max(1, Math.min(8, VOXEL_EXTRUDE_LAYERS));
+    const layerH = VOXEL_LAYER_HEIGHT;
+    const plan = VOXEL_PLAN;
+    const solid = countSolidVoxels(art);
+    const count = solid * layers;
+    const geometry = new THREE.BoxGeometry(plan, layerH * 0.96, plan);
     const material = new THREE.MeshLambertMaterial();
     const mesh = new THREE.InstancedMesh(geometry, material, count);
     const dummy = new THREE.Object3D();
@@ -1569,27 +1578,37 @@
       for (let px = 0; px < art.w; px += 1) {
         const cidx = art.cells[py * art.w + px];
         if (cidx === 0) continue;
-        dummy.position.set(px - art.w / 2 + 0.5, 0.46, py - art.h / 2 + 0.5);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(ii, dummy.matrix);
-        tmpColor.set(voxelDisplayHexForCell(art, cidx));
-        mesh.setColorAt(ii, tmpColor);
-        ii += 1;
+        const baseHex = voxelDisplayHexForCell(art, cidx);
+        for (let ly = 0; ly < layers; ly += 1) {
+          dummy.position.set(
+            px - art.w / 2 + 0.5,
+            -(ly + 0.5) * layerH,
+            py - art.h / 2 + 0.5
+          );
+          dummy.updateMatrix();
+          mesh.setMatrixAt(ii, dummy.matrix);
+          tmpColor.set(baseHex);
+          if (ly > 0) tmpColor.multiplyScalar(1 - ly * 0.09);
+          mesh.setColorAt(ii, tmpColor);
+          ii += 1;
+        }
       }
     }
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     scene.add(mesh);
 
-    const maxDim = Math.max(art.w, art.h, 1);
+    const yExtent = layers * layerH;
+    const midY = -yExtent / 2;
+    const maxDim = Math.max(art.w, art.h, yExtent, 1);
     const dist = maxDim * 1.35;
-    camera.position.set(dist * 0.72, dist * 0.92, dist * 0.88);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(dist * 0.72, midY + dist * 0.58, dist * 0.88);
+    camera.lookAt(0, midY, 0);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.target.set(0, 0.35, 0);
+    controls.target.set(0, midY, 0);
     controls.update();
 
     function onResize() {
