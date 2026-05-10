@@ -1808,10 +1808,9 @@
   async function saveCatch(item) {
     let catchId = null;
     // AI 픽셀아트(에픽+)만 정제해서 전송, 그 외는 서버가 자체 생성
-    const pixelArtForServer =
-      rarityUsesAiCatch(item.rarity) && item.pixelArt
-        ? serializePixelArt(item.pixelArt)
-        : null;
+    const pixelArtForServer = item.pixelArt
+      ? serializePixelArt(item.pixelArt)
+      : null;
 
     if (isLoggedIn && alpToken && platformApi) {
       try {
