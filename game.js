@@ -645,6 +645,55 @@
     return { w, h, palette, cells, fromEmoji: true };
   }
 
+  /** DALL-E 이미지 URL(또는 data URL) → 픽셀아트 cells+palette */
+  async function rasterizeImageUrlToPixelArt(url, w, h) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(null); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          const data = ctx.getImageData(0, 0, w, h).data;
+          const palette = [PIXEL_MAT];
+          const keyToIdx = new Map();
+          keyToIdx.set(PIXEL_MAT, 0);
+          const maxP = 24;
+          const cells = new Array(w * h);
+          for (let i = 0; i < w * h; i += 1) {
+            const r = data[i * 4];
+            const g = data[i * 4 + 1];
+            const b = data[i * 4 + 2];
+            const a = data[i * 4 + 3];
+            if (colorLikeMat(r, g, b, a)) { cells[i] = 0; continue; }
+            const k = quantRgbKey(r, g, b);
+            let cidx = keyToIdx.get(k);
+            if (cidx == null) {
+              if (palette.length < maxP) {
+                const parts = k.split(',').map((x) => parseInt(x, 10));
+                const hex = hexFromRgbByte(parts[0], parts[1], parts[2]);
+                cidx = palette.length;
+                palette.push(hex);
+                keyToIdx.set(k, cidx);
+              } else {
+                cidx = nearestPaletteColorIdx(r, g, b, palette);
+                keyToIdx.set(k, cidx);
+              }
+            }
+            cells[i] = cidx;
+          }
+          resolve({ w, h, palette, cells });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
   function generateMarineFloaterPixelArt(item) {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
@@ -1212,10 +1261,10 @@
     // ── AI로 생명체 생성 (로그인 + rare 이상일 때만, common은 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarity !== 'common') {
-      showStatus('🔍 생명체 분석 중...');
+      showStatus('🎨 AI가 생명체를 그리는 중...');
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 5000); // 5초 타임아웃
+        const tid = setTimeout(() => ctrl.abort(), 20000); // 20초 타임아웃 (DALL-E 포함)
         const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
           method: 'POST',
           headers: {
@@ -1241,11 +1290,19 @@
       const size = rollSize(rarity);
       const coins = computeCoinValue(rarity, size, type);
       const emoji = aiData.emoji || '';
-      // AI 이모지로 픽셀아트 생성 (이름에 맞는 그림)
-      const seed = hashPixelArtSeed({ name: aiData.name });
-      const pixelArt = emoji
-        ? rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed)
-        : null;
+
+      // DALL-E 이미지 → 픽셀아트 변환 (실패 시 이모지 폴백)
+      let pixelArt = null;
+      if (aiData.imageUrl) {
+        pixelArt = await rasterizeImageUrlToPixelArt(
+          aiData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H
+        );
+      }
+      if (!pixelArt && emoji) {
+        const seed = hashPixelArtSeed({ name: aiData.name });
+        pixelArt = rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed);
+      }
+
       item = { name: aiData.name, type, rarity, size, coins, emoji, pixelArt };
     } else {
       item = rollItemFromRarity(rarity);
