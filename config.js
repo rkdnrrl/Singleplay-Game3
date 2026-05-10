@@ -9,6 +9,8 @@
   if (typeof window.__ALP_PLATFORM_API__ === 'undefined') {
     window.__ALP_PLATFORM_API__ = '';
   }
+  // Twemoji 72×72 PNG 베이스 URL (끝에 / 권장). 미설정 시 game.js 기본 CDN 사용.
+  // window.__TWEMOJI_CDN_72__ = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/';
   // 필요 시 주석 해제
   // window.__ALP_CATCH_GAME_ID__ = 2;
   //window.__ALP_EASY_EPIC_TEST__ = true;

@@ -4,6 +4,11 @@
   /* ── 절차적 아이템 (희귀도 = 이름 멋짐·예쁨 점수 기반) ─── */
   const RARITY_LABEL = { common: '일반', rare: '희귀', epic: '에픽', legendary: '전설' };
 
+  /** 에픽·전설만 `/api/ai/catch` 사용 (일반·희귀는 절차적) */
+  function rarityUsesAiCatch(rarity) {
+    return rarity === 'epic' || rarity === 'legendary';
+  }
+
   /** 이름에 걸리면 희귀도 점수(prestige)에 가산 */
   const NAME_PRESTIGE_LEGEND = [
     '블랙홀', '평행우주', '다차원', '오메가', '퀀텀', '다크매터', '멸망한 행성', '암흑물질',
@@ -11,6 +16,7 @@
   const NAME_PRESTIGE_EPIC = [
     '중성자', '펄사', '성간', '반중력', '양자', '고대', '외계', '프로토타입', '불완전',
     '인공물', '모듈', '회로',
+    
   ];
   const NAME_PRESTIGE_RARE = [
     '네뷸라', '허블', '플라즈마', '이온', '광자', '위성', '유물', '전쟁터', '조각난',
@@ -419,6 +425,11 @@
   /** 인벤·이모지 샘플링 그리드 */
   const PIXEL_GRID_W = 32;
   const PIXEL_GRID_H = 32;
+  /** Twemoji 72×72 PNG 베이스 (파일명 = 유니코드 코드포인트 하이픈 연결). `window.__TWEMOJI_CDN_72__`로 덮어쓰기 가능 */
+  const TWEMOJI_CDN_72 =
+    (typeof window !== 'undefined' && window.__TWEMOJI_CDN_72__) ||
+    'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/';
+  const TWEMOJI_BASE = TWEMOJI_CDN_72.endsWith('/') ? TWEMOJI_CDN_72 : `${TWEMOJI_CDN_72}/`;
 
   function pixelPaintColor(hex, cidx) {
     if (cidx === 0) return PIXEL_MAT;
@@ -459,9 +470,56 @@
     return h >>> 0;
   }
 
-  /** 이름 키워드 → 이모지 (긴 키워드 우선) */
+  /**
+   * 이름 키워드 → 이모지 (긴 키워드가 배열 앞쪽).
+   * 값이 배열이면 이름·시드로 그중 하나를 골라 같은 키워드도 다양하게 보이게 함.
+   */
   const EMOJI_BY_NAME_KEYWORD = [
-    ['플랑크톤', '🦠'],
+    ['암흑물질', ['🌑', '🕳️', '✨']],
+    ['블랙홀', ['🕳️', '🌌', '⚫']],
+    ['평행우주', ['🌌', '🔮', '🌀']],
+    ['다차원', ['🧊', '🔮', '🌌']],
+    ['반중력', ['🎈', '☄️', '✨']],
+    ['플라즈마', ['⚡', '✨', '🔥']],
+    ['펄사', ['✨', '🌟', '💫']],
+    ['중성자', ['⚛️', '✨', '🔵']],
+    ['광자', ['💡', '✨', '⭐']],
+    ['허블', ['🔭', '🛰️', '🌌']],
+    ['이온', ['⚡', '✨', '💠']],
+    ['퀀텀', ['✨', '🔮', '♾️']],
+    ['오메가', ['🔯', '🔮', '🌟']],
+    ['다크매터', ['🌑', '✨', '🌌']],
+    ['플랑크톤', ['🦠', '🌿', '🔬']],
+    ['기생체', ['🦠', '🐛', '🔬']],
+    ['포자', ['🍄', '🦠', '🌫️']],
+    ['유기체', ['🧬', '🦠', '🐾']],
+    ['위성조각', ['🛰️', '💥', '🪨']],
+    ['컨테이너', ['📦', '🗃️', '📫']],
+    ['엔진', ['⚙️', '🔧', '🚀']],
+    ['패널', ['🔲', '📟', '💠']],
+    ['드론', ['🛸', '📡', '🤖']],
+    ['프리즘', ['🔮', '💎', '🌈']],
+    ['클러스터', ['✨', '💎', '🌟']],
+    ['샤드', ['💎', '🧩', '🔷']],
+    ['프로토타입', ['⚗️', '🔧', '🧪']],
+    ['인공물', ['🤖', '🏭', '⚙️']],
+    ['회로', ['🔌', '💡', '🧩']],
+    ['모듈', ['🧩', '📦', '🔧']],
+    ['석판', ['🪨', '📜', '🏛️']],
+    ['파편', ['💥', '🧩', '🪨']],
+    ['냉장고', ['🧊', '❄️', '🧃']],
+    ['멸망한 행성', ['🪐', '💀', '🌋']],
+    ['성간', ['🌌', '🛸', '☄️']],
+    ['고대', ['🏺', '🗿', '🏛️']],
+    ['외계', ['👽', '🛸', '🌠']],
+    ['조각난', ['🧩', '💔', '🪨']],
+    ['불완전', ['🧩', '⚠️', '🔧']],
+    ['전쟁터', ['💥', '⚔️', '🛡️']],
+    ['버려진', ['🗑️', '🏚️', '📦']],
+    ['궤도', ['🛰️', '🌍', '🌙']],
+    ['우주', ['🌌', '🚀', '🛸']],
+    ['은하', ['🌌', '✨', '🌀']],
+    ['솔라', ['☀️', '⚡', '🌞']],
     ['돌고래', '🐬'],
     ['범고래', '🐋'],
     ['쭈꾸미', '🐙'],
@@ -470,51 +528,135 @@
     ['해파리', '🪼'],
     ['낙지', '🐙'],
     ['상어', '🦈'],
-    ['고래', '🐋'],
-    ['물고기', '🐟'],
+    ['고래', ['🐋', '🐳']],
+    ['물고기', ['🐟', '🐠', '🐡']],
     ['물개', '🦭'],
     ['거북', '🐢'],
     ['조개', '🦪'],
     ['새우', '🦐'],
     ['가재', '🦞'],
     ['게', '🦀'],
-    ['민물', '🐠'],
-    ['바다', '🌊'],
-    ['수중', '🐟'],
-    ['유체', '🫧'],
-    ['포식자', '🦈'],
-    ['피라냐', '🐠'],
-    ['멸치', '🐟'],
-    ['청어', '🐟'],
-    ['고등어', '🐟'],
-    ['가자미', '🐡'],
-    ['우럭', '🐟'],
-    ['아귀', '🐟'],
-    ['연어', '🐟'],
-    ['참치', '🐟'],
-    ['삼치', '🐟'],
-    ['지느러미', '🐟'],
-    ['성운', '🌌'],
-    ['네뷸라', '🌌'],
-    ['결정', '💎'],
-    ['코어', '🔮'],
-    ['유물', '🏺'],
-    ['잔해', '🛰️'],
-    ['쓰레기', '🗑️'],
+    ['민물', ['🐠', '🐟', '🫧']],
+    ['바다', ['🌊', '🏖️', '🐚']],
+    ['수중', ['🐟', '🫧', '🌊']],
+    ['유체', ['🫧', '💧', '🌊']],
+    ['포식자', ['🦈', '🐙', '🦑']],
+    ['피라냐', ['🐠', '🦈', '🐡']],
+    ['멸치', ['🐟', '🐠', '🫧']],
+    ['청어', ['🐟', '🐠', '🥫']],
+    ['고등어', ['🐟', '🐠', '🐡']],
+    ['가자미', ['🐡', '🐟', '🐠']],
+    ['우럭', ['🐟', '🐠', '🎣']],
+    ['아귀', ['🐟', '🐡', '😈']],
+    ['연어', ['🐟', '🐠', '🧡']],
+    ['참치', ['🐟', '🐠', '🍣']],
+    ['삼치', ['🐟', '🦈', '🐠']],
+    ['지느러미', ['🐟', '🐠', '🐡']],
+    ['성운', ['🌌', '✨', '🌠']],
+    ['네뷸라', ['🌌', '🌠', '✨']],
+    ['결정', ['💎', '🔷', '✨']],
+    ['코어', ['🔮', '💠', '⚛️']],
+    ['유물', ['🏺', '🗿', '⚱️']],
+    ['잔해', ['🛰️', '💥', '🧩']],
+    ['쓰레기', ['🗑️', '♻️', '📦']],
+    ['더미', ['📦', '🧱', '🗿']],
+    ['녹슨', ['🔩', '⚙️', '🧰']],
+    ['냉동', ['🧊', '❄️', '🥶']],
+    ['행성', ['🪐', '🌍', '🌏', '🌑']],
+    ['위성', ['🛰️', '📡', '🌙']],
+    ['번식군', ['🐣', '🧬', '🔬']],
+    ['군체', ['🦠', '🐜', '🧫']],
+    ['개체', ['🧬', '🔬', '📋']],
+    ['미기록', ['❓', '📇', '🔍']],
+    ['표본', ['🧫', '📌', '🔬']],
+    ['아종', ['🧬', '🦠', '🐾']],
+    ['α형', ['🔺', '⚛️', '✳️']],
+    ['β형', ['🔻', '⚛️', '✴️']],
+    ['(손상)', ['⚠️', '🩹', '💔']],
+    ['(미기록)', ['❔', '📝', '🔭']],
+    ['(공명)', ['📳', '〰️', '🔔']],
+    ['MK-Ⅱ', ['🔧', '⚙️', '🆕']],
+    ['묶음', ['📦', '🪢', '🧶']],
+    ['우주에서', ['☄️', '🌠', '🚀']],
+    ['떨어진', ['💫', '☄️', '🌠']],
+    ['숨어든', ['🫥', '👁️', '🌑']],
+    ['에 갇힌', ['🔒', '📦', '🧊']],
+    ['에 붙은', ['🧲', '📎', '💠']],
+    [' 속의', ['🫧', '💠', '🔮']],
+    ['에서 온', ['🛬', '🌊', '✨']],
+    ['가 된', ['✨', '💫', '🌀']],
+    ['형 ', ['🔷', '⚙️', '🧩']],
+    [' 같은 ', ['🪞', '✨', '♊']],
+    ['의 일부', ['🧩', '📄', '✂️']],
+    [' 뒤에 ', ['🌓', '👤', '🌑']],
+    ['와 숨어든', ['➕', '🔗', '✨']],
   ];
 
-  const EMOJI_FALLBACK_COSMIC = ['🐠', '🐡', '🦑', '🐙', '🪼', '🐬', '🐋', '🐟', '🦈', '🌊', '✨', '🌀'];
-  const EMOJI_FALLBACK_MARINE = ['🐠', '🐡', '🐟', '🐬', '🐋', '🦈', '🪼', '🐙', '🦑', '🌊', '🦭', '🐳'];
+  /** `emoji-pool.js` 미로드·용량 부족 시에만 사용 (약 130개) */
+  const EMOJI_FALLBACK_COSMIC_LEGACY = [
+    '🐠', '🐡', '🦑', '🐙', '🪼', '🐬', '🐋', '🐳', '🐟', '🦈', '🌊', '✨', '🌀', '🌌', '🌠',
+    '🌙', '☄️', '🪐', '⭐', '🌟', '💫', '🛸', '👾', '🤖', '🛰️', '🚀', '🌑', '🔭', '⚡', '🧬',
+    '🦠', '🫧', '🎣', '🔱', '🏝️', '🐚', '🪸', '🦭', '🌃', '🔮', '💎', '🧿', '☀️', '🌈', '🏺',
+    '🗿', '⚗️', '🧪', '🔧', '📡', '💥', '🧩', '🪨', '🌿', '🍄', '🌫️', '🐛', '🐾', '🎈', '♾️',
+    '💠', '🔷', '🌋', '⚔️', '🛡️', '🏚️', '🌍', '🌞', '🥫', '🍣', '🧃', '❄️', '🧊', '🔌', '📦',
+    '🎇', '🎆', '🌉', '🌁', '🫎', '🦌', '🦬', '🪽', '🔥', '🫀', '🧠', '👁️', '🦴', '🕯️', '🧊',
+    '🎭', '🪄', '🧙', '🌵', '🪐', '🛎️', '⌛', '⏳', '🧭', '🗺️', '🎪', '🎯', '🎲', '🪅', '🎨',
+    '🦋', '🐝', '🪲', '🦗', '🕷️', '🦂', '🐉', '🦕', '🦖', '🐌', '🦫', '🦔', '🦇', '🐈', '🐕',
+    '🦮', '🐩', '🦤', '🦚', '🦜', '🐿️', '🦦', '🪿', '🫏', '🫐', '🍇', '🍊', '🍋', '🍌', '🍉',
+  ];
+
+  const EMOJI_FALLBACK_MARINE_LEGACY = [
+    '🐠', '🐡', '🐟', '🐬', '🐋', '🐳', '🦈', '🪼', '🐙', '🦑', '🌊', '🦭', '🐚', '🪸', '🦐',
+    '🦞', '🦀', '🦪', '🐢', '🫧', '🏖️', '🎣', '🔱', '🌴', '🐊', '🦦', '🌅', '🌙', '⭐', '✨',
+    '🐧', '🦆', '🪿', '🐦', '🌧️', '💧', '🧜', '⚓', '🚢', '🛟', '🏄', '🤿', '🐚', '🪸', '🦭',
+    '🌺', '🌻', '🌼', '🌷', '🪷', '🐚', '🦑', '🐙', '🪼', '🦈', '🐋', '🐬', '🐟', '🐠', '🐡',
+    '🏝️', '⛵', '🚤', '🛥️', '🌫️', '🌊', '💦', '🫧', '🧊', '🏊', '🚣', '🎏', '🎐', '🌀', '🌪️',
+  ];
+
+  const EMOJI_POOL_LARGE =
+    typeof window !== 'undefined' &&
+    Array.isArray(window.__GAME_EMOJI_POOL__) &&
+    window.__GAME_EMOJI_POOL__.length >= 10000
+      ? window.__GAME_EMOJI_POOL__
+      : null;
+
+  const EMOJI_FALLBACK_COSMIC = EMOJI_POOL_LARGE || EMOJI_FALLBACK_COSMIC_LEGACY;
+  const EMOJI_FALLBACK_MARINE = EMOJI_POOL_LARGE || EMOJI_FALLBACK_MARINE_LEGACY;
+
+  function mixSeedForEmoji(name, seed) {
+    let h = seed >>> 0;
+    const s = String(name);
+    for (let i = 0; i < s.length; i += 1) {
+      h = Math.imul(h ^ s.charCodeAt(i), 0x9e3779b1);
+    }
+    h ^= Math.imul(seed ^ 0xa5a5a5a5, 0xc2b2ae35);
+    h = (h ^ (h >>> 13)) >>> 0;
+    h = Math.imul(h, 0x85ebca6b);
+    return h >>> 0;
+  }
+
+  function pickFromKeywordEmoji(entry, name, seed) {
+    const em = entry[1];
+    if (typeof em === 'string') return em;
+    const arr = em;
+    if (!arr || arr.length === 0) return '🐟';
+    const h = mixSeedForEmoji(String(entry[0]) + '\0' + name, seed);
+    const h2 = mixSeedForEmoji(name + '\0' + String(seed), seed ^ 0xdeadbeef);
+    return arr[(h + h2) % arr.length];
+  }
 
   function pickEmojiForItem(name, seed, marineOnly) {
     const n = String(name || '');
     const pool = marineOnly ? EMOJI_FALLBACK_MARINE : EMOJI_FALLBACK_COSMIC;
     for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
-      const kw = EMOJI_BY_NAME_KEYWORD[i][0];
-      const em = EMOJI_BY_NAME_KEYWORD[i][1];
-      if (n.indexOf(kw) >= 0) return em;
+      const entry = EMOJI_BY_NAME_KEYWORD[i];
+      const kw = entry[0];
+      if (n.indexOf(kw) >= 0) return pickFromKeywordEmoji(entry, n, seed);
     }
-    return pool[seed % pool.length];
+    const h = mixSeedForEmoji(n, seed);
+    const h2 = mixSeedForEmoji(n + '\0fb', ~seed >>> 0);
+    const idx = (h ^ h2) % pool.length;
+    return pool[idx];
   }
 
   function hexFromRgbByte(r, g, b) {
@@ -556,72 +698,54 @@
     return best;
   }
 
-  /** 이모지를 고해상도에 그린 뒤 축소 샘플 → cells + palette (transformSeed = 이름 기반 미세 변형) */
-  function rasterizeEmojiToPixelArt(emoji, w, h, transformSeed) {
-    const empty = { w, h, palette: [PIXEL_MAT], cells: new Array(w * h).fill(0), fromEmoji: true };
-    const scaleUp = 4;
-    const hi = document.createElement('canvas');
-    hi.width = w * scaleUp;
-    hi.height = h * scaleUp;
-    const hctx = hi.getContext('2d');
-    if (!hctx) return empty;
+  function emojiToTwemojiFilename(emoji) {
+    if (emoji == null || typeof emoji !== 'string' || emoji.length === 0) return '';
+    const parts = [];
+    for (let i = 0; i < emoji.length; ) {
+      const cp = emoji.codePointAt(i);
+      parts.push(cp.toString(16));
+      i += cp > 0xffff ? 2 : 1;
+    }
+    return parts.length ? `${parts.join('-')}.png` : '';
+  }
 
-    const s = (transformSeed != null ? transformSeed >>> 0 : 0x5bd1e995) >>> 0;
-    const mirror = (s & 1) !== 0;
-    const ox = ((s >>> 1) & 7) - 3;
-    const oy = ((s >>> 4) & 7) - 3;
-    const drawScale = 0.92 + ((s >>> 7) & 15) / 100;
-    const hueDeg = ((s >>> 11) & 0x1f) - 15;
-    const rot = ((((s >>> 16) & 7) - 3) * Math.PI) / 180;
-    const sat = 1.06 + ((s >>> 21) & 0xf) / 22;
-    const con = 0.97 + ((s >>> 25) & 7) / 45;
+  function loadImageCrossOrigin(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
 
-    hctx.fillStyle = PIXEL_MAT;
-    hctx.fillRect(0, 0, hi.width, hi.height);
-
-    const cx = hi.width / 2;
-    const cy = hi.height / 2;
-    const fontPx = Math.max(10, Math.floor(hi.height * 0.72));
-
-    hctx.save();
-    hctx.translate(cx + ox, cy + oy);
-    hctx.rotate(rot);
-    hctx.scale(mirror ? -drawScale : drawScale, drawScale);
-    const filt = [];
-    if (hueDeg !== 0) filt.push(`hue-rotate(${hueDeg}deg)`);
-    filt.push(`saturate(${sat.toFixed(3)})`);
-    filt.push(`contrast(${con.toFixed(3)})`);
-    hctx.filter = filt.join(' ');
-    hctx.font = `${fontPx}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
-    hctx.textAlign = 'center';
-    hctx.textBaseline = 'middle';
-    hctx.fillText(emoji, 0, 0);
-    hctx.restore();
-
+  /** 고해상도 캔버스 → 그리드 픽셀 (이모지·Twemoji 공통) */
+  function downsampleHiCanvasToEmojiPixelArt(hi, outW, outH) {
+    const empty = { w: outW, h: outH, palette: [PIXEL_MAT], cells: new Array(outW * outH).fill(0), fromEmoji: true };
     const lo = document.createElement('canvas');
-    lo.width = w;
-    lo.height = h;
+    lo.width = outW;
+    lo.height = outH;
     const lctx = lo.getContext('2d');
     if (!lctx) return empty;
     lctx.imageSmoothingEnabled = false;
-    lctx.drawImage(hi, 0, 0, w, h);
+    lctx.drawImage(hi, 0, 0, outW, outH);
 
-    const data = lctx.getImageData(0, 0, w, h).data;
+    const data = lctx.getImageData(0, 0, outW, outH).data;
     const palette = [PIXEL_MAT];
     const keyToIdx = new Map();
     keyToIdx.set(PIXEL_MAT, 0);
     const maxPaletteEntries = 36;
-    const cells = new Array(w * h);
+    const cells = new Array(outW * outH);
 
-    for (let py = 0; py < h; py += 1) {
-      for (let px = 0; px < w; px += 1) {
-        const di = (py * w + px) * 4;
+    for (let py = 0; py < outH; py += 1) {
+      for (let px = 0; px < outW; px += 1) {
+        const di = (py * outW + px) * 4;
         const r = data[di];
         const g = data[di + 1];
         const b = data[di + 2];
         const a = data[di + 3];
         if (colorLikeMat(r, g, b, a)) {
-          cells[py * w + px] = 0;
+          cells[py * outW + px] = 0;
           continue;
         }
         const k = quantRgbKey(r, g, b);
@@ -638,11 +762,110 @@
             keyToIdx.set(k, cidx);
           }
         }
-        cells[py * w + px] = cidx;
+        cells[py * outW + px] = cidx;
       }
     }
 
-    return { w, h, palette, cells, fromEmoji: true };
+    return { w: outW, h: outH, palette, cells, fromEmoji: true };
+  }
+
+  function emojiRasterTransformParams(transformSeed) {
+    const s = (transformSeed != null ? transformSeed >>> 0 : 0x5bd1e995) >>> 0;
+    return {
+      mirror: (s & 1) !== 0,
+      ox: ((s >>> 1) & 7) - 3,
+      oy: ((s >>> 4) & 7) - 3,
+      drawScale: 0.92 + ((s >>> 7) & 15) / 100,
+      hueDeg: ((s >>> 11) & 0x1f) - 15,
+      rot: ((((s >>> 16) & 7) - 3) * Math.PI) / 180,
+      sat: 1.06 + ((s >>> 21) & 0xf) / 22,
+      con: 0.97 + ((s >>> 25) & 7) / 45,
+    };
+  }
+
+  /** 시스템 폰트 이모지 (Twemoji 로드 실패·오프라인 폴백) */
+  function rasterizeEmojiToPixelArtFillText(emoji, w, h, transformSeed) {
+    const empty = { w, h, palette: [PIXEL_MAT], cells: new Array(w * h).fill(0), fromEmoji: true };
+    const scaleUp = 4;
+    const hi = document.createElement('canvas');
+    hi.width = w * scaleUp;
+    hi.height = h * scaleUp;
+    const hctx = hi.getContext('2d');
+    if (!hctx) return empty;
+
+    const t = emojiRasterTransformParams(transformSeed);
+    hctx.fillStyle = PIXEL_MAT;
+    hctx.fillRect(0, 0, hi.width, hi.height);
+
+    const cx = hi.width / 2;
+    const cy = hi.height / 2;
+    const fontPx = Math.max(10, Math.floor(hi.height * 0.72));
+
+    hctx.save();
+    hctx.translate(cx + t.ox, cy + t.oy);
+    hctx.rotate(t.rot);
+    hctx.scale(t.mirror ? -t.drawScale : t.drawScale, t.drawScale);
+    const filt = [];
+    if (t.hueDeg !== 0) filt.push(`hue-rotate(${t.hueDeg}deg)`);
+    filt.push(`saturate(${t.sat.toFixed(3)})`);
+    filt.push(`contrast(${t.con.toFixed(3)})`);
+    hctx.filter = filt.join(' ');
+    hctx.font = `${fontPx}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
+    hctx.textAlign = 'center';
+    hctx.textBaseline = 'middle';
+    hctx.fillText(emoji, 0, 0);
+    hctx.restore();
+
+    return downsampleHiCanvasToEmojiPixelArt(hi, w, h);
+  }
+
+  /** Twemoji CDN PNG만 시도 (성공 시 픽셀아트, 실패 시 null) */
+  async function rasterizeEmojiFromTwemojiUrl(emoji, w, h, transformSeed) {
+    const file = emojiToTwemojiFilename(emoji);
+    if (!file) return null;
+    const img = await loadImageCrossOrigin(TWEMOJI_BASE + file);
+    if (!img || !img.naturalWidth) return null;
+
+    const scaleUp = 4;
+    const hi = document.createElement('canvas');
+    hi.width = w * scaleUp;
+    hi.height = h * scaleUp;
+    const hctx = hi.getContext('2d');
+    if (!hctx) return null;
+
+    const t = emojiRasterTransformParams(transformSeed);
+    hctx.fillStyle = PIXEL_MAT;
+    hctx.fillRect(0, 0, hi.width, hi.height);
+
+    const cx = hi.width / 2;
+    const cy = hi.height / 2;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const targetH = hi.height * 0.72;
+    const imgScale = targetH / ih;
+    const dw = iw * imgScale;
+    const dh = ih * imgScale;
+
+    hctx.save();
+    hctx.translate(cx + t.ox, cy + t.oy);
+    hctx.rotate(t.rot);
+    hctx.scale(t.mirror ? -t.drawScale : t.drawScale, t.drawScale);
+    const filt = [];
+    if (t.hueDeg !== 0) filt.push(`hue-rotate(${t.hueDeg}deg)`);
+    filt.push(`saturate(${t.sat.toFixed(3)})`);
+    filt.push(`contrast(${t.con.toFixed(3)})`);
+    hctx.filter = filt.join(' ');
+    hctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    hctx.restore();
+
+    return downsampleHiCanvasToEmojiPixelArt(hi, w, h);
+  }
+
+  /** Twemoji URL 우선, 실패 시 시스템 이모지 글리프 */
+  async function rasterizeEmojiToPixelArt(emoji, w, h, transformSeed) {
+    const tw = await rasterizeEmojiFromTwemojiUrl(emoji, w, h, transformSeed);
+    if (tw) return tw;
+    return rasterizeEmojiToPixelArtFillText(emoji, w, h, transformSeed);
   }
 
   /** DALL-E 이미지 URL(또는 data URL) → 픽셀아트 cells+palette */
@@ -694,7 +917,7 @@
     });
   }
 
-  function generateMarineFloaterPixelArt(item) {
+  async function generateMarineFloaterPixelArt(item) {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
     const base = hashPixelArtSeed(item);
@@ -703,7 +926,7 @@
     return rasterizeEmojiToPixelArt(emoji, w, h, base);
   }
 
-  function generateCatchPixelArt(item) {
+  async function generateCatchPixelArt(item) {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
     const base = hashPixelArtSeed(item);
@@ -990,12 +1213,15 @@
       const rarity = rarityFromName(name);
       const size = rollSize(rarity);
       const item = { name, type: UNIFIED_TYPE, rarity, size };
-      const art = marine ? generateMarineFloaterPixelArt(item) : generateCatchPixelArt(item);
+      const base = hashPixelArtSeed(item);
+      const pickSeed = marine ? base ^ 0x9e3779b9 : base;
+      const emoji = pickEmojiForItem(item.name, pickSeed, marine);
+      const art0 = rasterizeEmojiToPixelArtFillText(emoji, PIXEL_GRID_W, PIXEL_GRID_H, base);
       const scale = 2 + (Math.random() < 0.28 ? 1 : 0);
-      const bmp = rasterizePixelArtForBg(art, scale);
+      const bmp = rasterizePixelArtForBg(art0, scale);
       const speed = reducedMotion ? 0 : 0.05 + Math.random() * 0.38;
       const ang = Math.random() * Math.PI * 2;
-      return {
+      const floater = {
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         vx: Math.cos(ang) * speed,
@@ -1006,7 +1232,16 @@
         alpha: 0.72 + Math.random() * 0.2,
         halfW: bmp.width / 2,
         halfH: bmp.height / 2,
+        _bgScale: scale,
       };
+      rasterizeEmojiFromTwemojiUrl(emoji, PIXEL_GRID_W, PIXEL_GRID_H, base).then((twArt) => {
+        if (!twArt || !floater.bmp) return;
+        const next = rasterizePixelArtForBg(twArt, floater._bgScale);
+        floater.bmp = next;
+        floater.halfW = next.width / 2;
+        floater.halfH = next.height / 2;
+      });
+      return floater;
     }
 
     function resize() {
@@ -1105,22 +1340,57 @@
   }
 
   /* ── 보관함 ──────────────────────────────────────────── */
+  function syncInventoryDockLayoutMode() {
+    if (!inventoryDock || !inventoryScrollWrap) return;
+    const strip = window.innerWidth <= 520 && window.innerHeight > window.innerWidth;
+    const was = inventoryDock.classList.contains('inventory-dock--portrait-strip');
+    inventoryDock.classList.toggle('inventory-dock--portrait-strip', strip);
+    if (was !== strip) {
+      inventoryScrollWrap.scrollLeft = 0;
+      inventoryScrollWrap.scrollTop = 0;
+    }
+  }
+
   function syncInventoryScrollOverflow() {
     const wrap = inventoryScrollWrap;
     if (!wrap) return;
     if (inventory.length === 0) {
       wrap.classList.remove('has-overflow', 'is-dragging');
       wrap.scrollTop = 0;
+      wrap.scrollLeft = 0;
       return;
     }
     requestAnimationFrame(() => {
-      const overflow = wrap.scrollHeight > wrap.clientHeight + 1;
+      let overflow;
+      if (inventoryDock && inventoryDock.classList.contains('inventory-dock--beside-minigame')) {
+        overflow = wrap.scrollHeight > wrap.clientHeight + 1;
+      } else if (inventoryDock && inventoryDock.classList.contains('inventory-dock--portrait-strip')) {
+        overflow = wrap.scrollWidth > wrap.clientWidth + 1;
+      } else {
+        overflow = wrap.scrollHeight > wrap.clientHeight + 1;
+      }
       wrap.classList.toggle('has-overflow', overflow);
     });
   }
 
+  /** 세로+스트립 모드에서 미니게임이 열리면 보관함을 오른쪽으로 붙여 낚시 UI 가림 방지 */
+  function syncInventoryDockMinigamePosition() {
+    if (!inventoryDock || !minigame || !inventoryScrollWrap) return;
+    const strip = inventoryDock.classList.contains('inventory-dock--portrait-strip');
+    const miniOpen = !minigame.classList.contains('hidden');
+    const next = strip && miniOpen;
+    const was = inventoryDock.classList.contains('inventory-dock--beside-minigame');
+    inventoryDock.classList.toggle('inventory-dock--beside-minigame', next);
+    if (was !== next) {
+      inventoryScrollWrap.scrollLeft = 0;
+      inventoryScrollWrap.scrollTop = 0;
+    }
+  }
+
   function renderInventory() {
     if (!inventoryList) return;
+    syncInventoryDockLayoutMode();
+    syncInventoryDockMinigamePosition();
 
     if (inventory.length === 0) {
       inventoryList.innerHTML = '<p class="log-empty">보관함이 비어있습니다</p>';
@@ -1151,11 +1421,13 @@
       `;
       const thumb = el.querySelector('[data-thumb]');
       if (thumb) {
-        const art =
-          item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
-            ? item.pixelArt
-            : generateCatchPixelArt(itemStubForArt(item));
-        mountPixelArt(thumb, art, 56, 56);
+        void (async () => {
+          const art =
+            item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
+              ? item.pixelArt
+              : await generateCatchPixelArt(itemStubForArt(item));
+          mountPixelArt(thumb, art, 56, 56);
+        })();
       }
       inventoryList.appendChild(el);
     });
@@ -1231,6 +1503,8 @@
     beamLine.classList.remove('extended');
     lureEl.classList.remove('biting');
     lureEl.textContent = '🔵';
+    syncInventoryDockMinigamePosition();
+    syncInventoryScrollOverflow();
   }
 
   function goCasting() {
@@ -1244,6 +1518,8 @@
       if (state !== 'CASTING') return;
       goWaiting();
     }, 600);
+    syncInventoryDockMinigamePosition();
+    syncInventoryScrollOverflow();
   }
 
   function goWaiting() {
@@ -1252,10 +1528,12 @@
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
-      // 미니게임에는 희귀도만 필요 — 이름은 잡은 후 AI가 생성
+      // 미니게임에는 희귀도만 필요 — 에픽+는 잡은 뒤 AI가 이름·이미지 생성
       currentItem = { rarity: rollRarity() };
       goMinigame();
     }, wait);
+    syncInventoryDockMinigamePosition();
+    syncInventoryScrollOverflow();
   }
 
   function goMinigame() {
@@ -1264,6 +1542,8 @@
     showStatus('⚡ 무언가 걸렸다!');
     minigame.classList.remove('hidden');
     startMinigame(currentItem);
+    syncInventoryDockMinigamePosition();
+    syncInventoryScrollOverflow();
   }
 
   async function goResult(success) {
@@ -1271,6 +1551,8 @@
     mini.rafId = null;
     setMinigameScrollLocked(false);
     minigame.classList.add('hidden');
+    syncInventoryDockMinigamePosition();
+    syncInventoryScrollOverflow();
     lureEl.classList.remove('biting');
     beamLine.classList.remove('extended');
     lureEl.textContent = '🔵';
@@ -1285,9 +1567,9 @@
     state = 'RESULT';
     const rarity = currentItem.rarity;
 
-    // ── AI로 생명체 생성 (로그인 + rare 이상일 때만, common은 절차적) ──
+    // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
-    if (isLoggedIn && alpToken && platformApi && rarity !== 'common') {
+    if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
       showStatus('🎨 AI가 생명체를 그리는 중...');
       try {
         const ctrl = new AbortController();
@@ -1327,7 +1609,7 @@
       }
       if (!pixelArt && emoji) {
         const seed = hashPixelArtSeed({ name: aiData.name });
-        pixelArt = rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed);
+        pixelArt = await rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed);
       }
 
       item = { name: aiData.name, type, rarity, size, coins, emoji, pixelArt };
@@ -1336,8 +1618,8 @@
     }
     currentItem = item;
 
-    showResult(currentItem);
-    saveCatch(currentItem);
+    await showResult(currentItem);
+    await saveCatch(currentItem);
 
     setTimeout(() => {
       resultCard.classList.add('hidden');
@@ -1452,10 +1734,12 @@
   }
 
   /* ── 결과 표시 ───────────────────────────────────────── */
-  function showResult(item) {
+  async function showResult(item) {
     resultCard.className = `result-card rarity-${item.rarity}`;
-    // AI 이모지 픽셀아트가 있으면 우선 사용, 없으면 이름 기반 생성
-    const art = item.pixelArt || generateCatchPixelArt(item);
+    if (!item.pixelArt) {
+      item.pixelArt = await generateCatchPixelArt(item);
+    }
+    const art = item.pixelArt;
     if (resultSpriteHost) {
       mountPixelArt(resultSpriteHost, art, 128, 128);
     }
@@ -1473,8 +1757,11 @@
   /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
-    // AI 픽셀아트(rare+)는 정제해서 전송, 일반은 서버가 자체 생성
-    const pixelArtForServer = item.pixelArt ? serializePixelArt(item.pixelArt) : null;
+    // AI 픽셀아트(에픽+)만 정제해서 전송, 그 외는 서버가 자체 생성
+    const pixelArtForServer =
+      rarityUsesAiCatch(item.rarity) && item.pixelArt
+        ? serializePixelArt(item.pixelArt)
+        : null;
 
     if (isLoggedIn && alpToken && platformApi) {
       try {
@@ -1501,7 +1788,10 @@
       } catch {}
     }
 
-    const localPixelArt = item.pixelArt || generateCatchPixelArt(item);
+    if (!item.pixelArt) {
+      item.pixelArt = await generateCatchPixelArt(item);
+    }
+    const localPixelArt = item.pixelArt;
     inventory.push({
       id: catchId,
       name: item.name,
@@ -1603,7 +1893,15 @@
       wrap.classList.remove('is-dragging');
     });
 
-    window.addEventListener('resize', () => syncInventoryScrollOverflow());
+    function onInventoryLayoutResize() {
+      syncInventoryDockLayoutMode();
+      syncInventoryDockMinigamePosition();
+      syncInventoryScrollOverflow();
+    }
+    window.addEventListener('resize', onInventoryLayoutResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(onInventoryLayoutResize, 120);
+    });
   })();
 
   /* ── 초기 렌더 ───────────────────────────────────────── */
