@@ -2136,6 +2136,8 @@
         if (e.pointerType !== 'mouse') return;
         if (e.button !== 0) return;
         if (e.target.closest('button, input, a, [role="button"]')) return;
+        /* 카드 클릭 → 3D 보기: 캡처하면 click 이 안 뜸(PC). 아이템 위에서는 드래그 스크롤 안 함 */
+        if (e.target.closest('.inv-item')) return;
         dragging = true;
         dragHorizontal = inventoryDragIsHorizontal();
         startMain = dragHorizontal ? e.clientX : e.clientY;
@@ -2186,6 +2188,21 @@
       ptrId = null;
       wrap.classList.remove('is-dragging');
     });
+
+    /* 세로 스트립(가로 스크롤): PC는 카드 클릭을 살리기 위해 휠·트랙패드로 좌우 이동 */
+    wrap.addEventListener(
+      'wheel',
+      (e) => {
+        if (!wrap.classList.contains('has-overflow')) return;
+        if (!inventoryDragIsHorizontal()) return;
+        const dx = e.deltaX;
+        const dy = e.deltaY;
+        if (dx === 0 && dy === 0) return;
+        e.preventDefault();
+        wrap.scrollLeft += dx + dy;
+      },
+      { passive: false }
+    );
 
     function onInventoryLayoutResize() {
       syncInventoryDockLayoutMode();
