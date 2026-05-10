@@ -1180,6 +1180,12 @@
               pixelArt: c.pixelArt || null,
             });
           });
+          inventory.sort((a, b) => {
+            const na = a.id != null ? Number(a.id) : NaN;
+            const nb = b.id != null ? Number(b.id) : NaN;
+            if (Number.isFinite(na) && Number.isFinite(nb)) return nb - na;
+            return 0;
+          });
           renderInventory();
         }
       })
@@ -1841,7 +1847,7 @@
       item.pixelArt = await generateCatchPixelArt(item);
     }
     const localPixelArt = item.pixelArt;
-    inventory.push({
+    inventory.unshift({
       id: catchId,
       name: item.name,
       type: item.type,
