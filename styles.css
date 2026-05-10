@@ -1,0 +1,335 @@
+:root {
+  --sky-top: #6eb8ff;
+  --sky-bottom: #b8dcff;
+  --water-deep: #1e6091;
+  --water-mid: #2e86ab;
+  --water-light: #5fa8d3;
+  --fish-main: #c9a227;
+  --fish-belly: #e8d48b;
+  --fish-dark: #8b6914;
+  --bobber-red: #e53935;
+  --bobber-white: #fafafa;
+  --hp-bg: rgba(0, 40, 80, 0.35);
+  --hp-fill: #ff9800;
+  --text: #0d2137;
+  --shadow: rgba(0, 30, 60, 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Gowun Dodum", system-ui, sans-serif;
+  color: var(--text);
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-bottom) 38%,
+    var(--water-light) 38%,
+    var(--water-mid) 62%,
+    var(--water-deep) 100%
+  );
+  background-attachment: fixed;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.hud-coin {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(255, 215, 0, 0.45);
+}
+
+.coin-value {
+  color: #b8860b;
+}
+
+.hud-block {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.hud-label {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.75;
+  margin-bottom: 0.2rem;
+}
+
+.hud-value {
+  font-family: "Jua", "Gowun Dodum", sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+.hint {
+  text-align: center;
+  font-size: 0.88rem;
+  margin: 0 0 1rem;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 40, 80, 0.5);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.tension-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tension-layer svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hp-bar {
+  width: min(280px, 85vw);
+  height: 10px;
+  background: var(--hp-bg);
+  border-radius: 999px;
+  margin-top: 1.25rem;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.hp-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f57c00, var(--hp-fill));
+  border-radius: 999px;
+  transform-origin: left center;
+  transition: transform 0.12s ease-out;
+}
+
+.hp-caption {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.fish-btn {
+  position: relative;
+  width: min(220px, 70vw);
+  height: min(220px, 70vw);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  z-index: 1;
+  transition: transform 0.08s ease-out;
+  touch-action: manipulation;
+}
+
+.fish-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.fish-btn:disabled {
+  cursor: default;
+  opacity: 0.88;
+}
+
+.water-ripple {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 55%,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(94, 168, 211, 0.45) 40%,
+    rgba(30, 96, 145, 0.55) 100%
+  );
+  box-shadow:
+    inset 0 4px 20px rgba(255, 255, 255, 0.25),
+    0 8px 24px rgba(0, 50, 90, 0.35);
+}
+
+.fish-body {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58%;
+  height: 36%;
+  margin-left: -28%;
+  margin-top: -12%;
+  border-radius: 50% 60% 55% 45% / 45% 50% 50% 55%;
+  background:
+    radial-gradient(ellipse 70% 80% at 35% 40%, var(--fish-belly) 0%, transparent 55%),
+    linear-gradient(165deg, var(--fish-main) 0%, var(--fish-dark) 100%);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fish-tail {
+  position: absolute;
+  left: 18%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -10%;
+  border-style: solid;
+  border-width: 14px 0 14px 28px;
+  border-color: transparent var(--fish-dark) transparent transparent;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.fish-eye {
+  position: absolute;
+  left: 62%;
+  top: 44%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  box-shadow: inset -1px -1px 0 #fff;
+}
+
+.bobber {
+  position: absolute;
+  right: 22%;
+  top: 28%;
+  width: 22px;
+  height: 28px;
+  border-radius: 50% 50% 45% 45%;
+  background: linear-gradient(180deg, var(--bobber-red) 48%, var(--bobber-white) 52%);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.fish-btn.caught .fish-body,
+.fish-btn.caught .fish-tail,
+.fish-btn.caught .fish-eye {
+  animation: fish-landed 0.48s ease-in forwards;
+}
+
+@keyframes fish-landed {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.12) translateY(-6px);
+  }
+  100% {
+    transform: scale(0.2) translateY(-40px);
+    opacity: 0;
+  }
+}
+
+.float-score {
+  position: fixed;
+  font-family: "Jua", sans-serif;
+  font-size: 1.4rem;
+  color: #fff;
+  text-shadow: 0 2px 0 #1565c0, 0 0 12px rgba(21, 101, 192, 0.85);
+  pointer-events: none;
+  z-index: 100;
+  animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -72px) scale(1.15);
+  }
+}
+
+.particle {
+  position: fixed;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #90caf9);
+  pointer-events: none;
+  z-index: 99;
+  animation: particle-fly 0.55s ease-out forwards;
+}
+
+@keyframes particle-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(200deg);
+  }
+}
+
+.footer {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.combo {
+  font-family: "Jua", sans-serif;
+  font-size: 1.1rem;
+  color: #fff9c4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.combo.hidden {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish-btn,
+  .hp-fill,
+  .float-score,
+  .particle {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .fish-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

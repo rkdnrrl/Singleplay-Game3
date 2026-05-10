@@ -1,0 +1,12 @@
+{
+  "name": "fishing-clicker",
+  "version": "1.0.0",
+  "description": "낚시 클리커 - ALP 미니 게임",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
