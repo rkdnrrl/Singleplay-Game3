@@ -945,9 +945,14 @@
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const reducedMotion =
+    const prefersReducedMotion =
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobileViewport =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches;
+    // 모바일에서는 reduced-motion이 켜져 있어도 배경 오브젝트는 움직이게 유지
+    const reducedMotion = prefersReducedMotion && !isMobileViewport;
 
     let stars = [];
     let pixelFloaters = [];
