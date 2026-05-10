@@ -35,10 +35,9 @@
   const RARITY_WEIGHT = { common: 55, rare: 28, epic: 13, legendary: 4 };
   const RARITY_LABEL  = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
 
-  // 미니게임 설정 (희귀도별)
   const MINI_CONFIG = {
-    common:    { zoneRatio: 0.36, speed: 60, erratic: false },
-    rare:      { zoneRatio: 0.30, speed: 90, erratic: false },
+    common:    { zoneRatio: 0.36, speed: 60,  erratic: false },
+    rare:      { zoneRatio: 0.30, speed: 90,  erratic: false },
     epic:      { zoneRatio: 0.24, speed: 120, erratic: true  },
     legendary: { zoneRatio: 0.18, speed: 160, erratic: true  },
   };
@@ -61,7 +60,8 @@
   const resultName        = document.getElementById('resultName');
   const resultSize        = document.getElementById('resultSize');
   const resultCoins       = document.getElementById('resultCoins');
-  const logList           = document.getElementById('logList');
+  const inventoryList     = document.getElementById('inventoryList');
+  const sellAllBtn        = document.getElementById('sellAllBtn');
 
   /* ── 플랫폼 연동 ─────────────────────────────────────── */
   const urlParams   = new URLSearchParams(window.location.search);
@@ -71,8 +71,19 @@
   let isLoggedIn   = false;
   let totalCoins   = 0;
   let totalCatches = 0;
+  let inventory    = []; // { id, name, emoji, rarity, coins }
+  let isSelling    = false;
+
+  function updateCoinDisplay() {
+    if (!coinCountEl) return;
+    coinCountEl.textContent = isLoggedIn ? totalCoins.toLocaleString() : '로그인 필요';
+  }
+  function updateCatchesDisplay() {
+    if (totalCatchesEl) totalCatchesEl.textContent = totalCatches.toLocaleString();
+  }
 
   if (alpToken && platformApi) {
+    // 내 정보 (코인)
     fetch(`${platformApi}/api/auth/me`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
@@ -86,27 +97,39 @@
       })
       .catch(() => {});
 
-    // 최근 포획 로드
-    fetch(`${platformApi}/api/catches?limit=10`, {
+    // 총 포획 수
+    fetch(`${platformApi}/api/catches/stats`, {
+      headers: { Authorization: `Bearer ${alpToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          totalCatches = data.total ?? 0;
+          updateCatchesDisplay();
+        }
+      })
+      .catch(() => {});
+
+    // 보관함 로드 (미판매 아이템)
+    fetch(`${platformApi}/api/catches/inventory?limit=50`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.catches?.length) {
-          totalCatches = data.total ?? 0;
-          updateCatchesDisplay();
-          data.catches.forEach(c => addLogItem(c.itemName, c.rarity, c.coinValue, new Date(c.caughtAt)));
+          data.catches.forEach(c => {
+            inventory.push({
+              id: c.id,
+              name: c.itemName,
+              emoji: c.itemEmoji || '❓',
+              rarity: c.rarity,
+              coins: c.coinValue,
+            });
+          });
+          renderInventory();
         }
       })
       .catch(() => {});
-  }
-
-  function updateCoinDisplay() {
-    if (!coinCountEl) return;
-    coinCountEl.textContent = isLoggedIn ? totalCoins.toLocaleString() : '로그인 필요';
-  }
-  function updateCatchesDisplay() {
-    if (totalCatchesEl) totalCatchesEl.textContent = totalCatches.toLocaleString();
   }
 
   /* ── 별 배경 ─────────────────────────────────────────── */
@@ -165,18 +188,94 @@
     return { ...item, size };
   }
 
+  /* ── 보관함 ──────────────────────────────────────────── */
+  function renderInventory() {
+    if (!inventoryList) return;
+
+    if (inventory.length === 0) {
+      inventoryList.innerHTML = '<p class="log-empty">보관함이 비어있습니다</p>';
+      if (sellAllBtn) sellAllBtn.classList.add('hidden');
+      return;
+    }
+
+    const totalValue = inventory.reduce((s, i) => s + i.coins, 0);
+    if (sellAllBtn) {
+      sellAllBtn.classList.remove('hidden');
+      sellAllBtn.textContent = `전체 팔기 · ${totalValue.toLocaleString()}🪙`;
+    }
+
+    inventoryList.innerHTML = '';
+    inventory.forEach(item => {
+      const canSell = isLoggedIn && item.id;
+      const el = document.createElement('div');
+      el.className = `inv-item rarity-${item.rarity}`;
+      el.innerHTML = `
+        <span class="inv-emoji">${item.emoji}</span>
+        <span class="inv-name">${item.name}</span>
+        <span class="inv-coins">${item.coins}🪙</span>
+        ${canSell
+          ? `<button class="inv-sell-btn" data-id="${item.id}">팔기</button>`
+          : `<span class="inv-sell-pending">${isLoggedIn ? '저장 중' : '로그인 필요'}</span>`
+        }
+      `;
+      inventoryList.appendChild(el);
+    });
+  }
+
+  async function sellItem(catchId) {
+    if (isSelling || !isLoggedIn || !alpToken || !platformApi) return;
+    isSelling = true;
+    try {
+      const res = await fetch(`${platformApi}/api/catches/sell`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
+        body: JSON.stringify({ ids: [catchId] }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      totalCoins = data.totalCoins;
+      inventory = inventory.filter(i => i.id !== catchId);
+      renderInventory();
+      updateCoinDisplay();
+    } catch {}
+    finally { isSelling = false; }
+  }
+
+  async function sellAll() {
+    if (isSelling || !isLoggedIn || !alpToken || !platformApi || inventory.length === 0) return;
+    const ids = inventory.filter(i => i.id).map(i => i.id);
+    if (ids.length === 0) return;
+    isSelling = true;
+    if (sellAllBtn) sellAllBtn.disabled = true;
+    try {
+      const res = await fetch(`${platformApi}/api/catches/sell`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      totalCoins = data.totalCoins;
+      inventory = inventory.filter(i => !ids.includes(i.id));
+      renderInventory();
+      updateCoinDisplay();
+    } catch {}
+    finally {
+      isSelling = false;
+      if (sellAllBtn) sellAllBtn.disabled = false;
+    }
+  }
+
   /* ── 게임 상태 ───────────────────────────────────────── */
-  // IDLE → CASTING → WAITING → MINIGAME → RESULT
   let state = 'IDLE';
   let currentItem = null;
 
-  // 미니게임 내부 상태
   let mini = {
     trackH: 0, zoneH: 0, zoneY: 0,
     barH: 0, barY: 0,
     pressing: false,
-    progress: 0,          // 0~1
-    targetVY: 0,          // 현재 속도
+    progress: 0,
+    targetVY: 0,
     rafId: null,
     lastTime: 0,
     cfg: null,
@@ -275,29 +374,24 @@
     mini.lastTime = now;
     const cfg = mini.cfg;
 
-    // 타겟 존 이동
     mini.zoneY += mini.targetVY * dt;
     if (mini.zoneY <= 0) { mini.zoneY = 0; mini.targetVY *= -1; }
     if (mini.zoneY + mini.zoneH >= mini.trackH) {
       mini.zoneY = mini.trackH - mini.zoneH;
       mini.targetVY *= -1;
     }
-    // 불규칙 움직임
     if (cfg.erratic && Math.random() < 0.015) {
       mini.targetVY = cfg.speed * (Math.random() * 2 - 1);
     }
 
-    // 캐치 바 이동
     const gravity = mini.pressing ? -320 : 280;
     mini.barY = Math.max(0, Math.min(mini.trackH - mini.barH, mini.barY + gravity * dt));
 
-    // 겹치는지 확인
     const barTop = mini.barY, barBot = mini.barY + mini.barH;
     const zoneTop = mini.zoneY, zoneBot = mini.zoneY + mini.zoneH;
     const overlap = Math.min(barBot, zoneBot) - Math.max(barTop, zoneTop);
     const overlapRatio = Math.max(0, overlap) / mini.zoneH;
 
-    // 진행도 업데이트
     const delta = overlapRatio > 0.4 ? 0.35 : -0.25;
     mini.progress = Math.max(0, Math.min(1, mini.progress + delta * dt));
 
@@ -320,7 +414,6 @@
     catchProgressFill.classList.toggle('danger', mini.progress < 0.25);
   }
 
-  // 누르기 이벤트
   function onPress()   { if (state === 'MINIGAME') mini.pressing = true; }
   function onRelease() { mini.pressing = false; }
 
@@ -338,58 +431,47 @@
     resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
     resultSize.textContent  = `${item.size}cm`;
-    resultCoins.textContent = `+${item.coins}🪙`;
+    resultCoins.textContent = `${item.coins}🪙`;
     resultCard.classList.remove('hidden');
 
-    totalCoins += item.coins;
     totalCatches += 1;
-    updateCoinDisplay();
     updateCatchesDisplay();
-    addLogItem(item.name, item.rarity, item.coins, new Date());
   }
 
-  function addLogItem(name, rarity, coins, date) {
-    const empty = logList.querySelector('.log-empty');
-    if (empty) empty.remove();
+  /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
+  async function saveCatch(item) {
+    let catchId = null;
 
-    const item = ITEMS.find(i => i.name === name);
-    const emoji = item?.emoji ?? '❓';
+    if (isLoggedIn && alpToken && platformApi) {
+      try {
+        const res = await fetch(`${platformApi}/api/catches`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${alpToken}`,
+          },
+          body: JSON.stringify({
+            itemName:  item.name,
+            itemEmoji: item.emoji,
+            itemType:  item.type,
+            rarity:    item.rarity,
+            size:      item.size,
+            coinValue: item.coins,
+          }),
+        });
+        const data = res.ok ? await res.json() : null;
+        catchId = data?.catch?.id ?? null;
+      } catch {}
+    }
 
-    const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-
-    const el = document.createElement('div');
-    el.className = `log-item rarity-${rarity}`;
-    el.innerHTML = `
-      <span class="log-item-emoji">${emoji}</span>
-      <span class="log-item-name">${name}</span>
-      <span class="log-item-coins">+${coins}🪙</span>
-      <span class="log-item-time">${timeStr}</span>
-    `;
-
-    logList.insertBefore(el, logList.firstChild);
-    // 최대 15개 유지
-    while (logList.children.length > 15) logList.removeChild(logList.lastChild);
-  }
-
-  /* ── 서버 저장 ───────────────────────────────────────── */
-  function saveCatch(item) {
-    if (!isLoggedIn || !alpToken || !platformApi) return;
-    fetch(`${platformApi}/api/catches`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${alpToken}`,
-      },
-      body: JSON.stringify({
-        itemName:  item.name,
-        itemType:  item.type,
-        rarity:    item.rarity,
-        size:      item.size,
-        coinValue: item.coins,
-      }),
-    })
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => {});
+    inventory.push({
+      id: catchId,
+      name: item.name,
+      emoji: item.emoji,
+      rarity: item.rarity,
+      coins: item.coins,
+    });
+    renderInventory();
   }
 
   /* ── 유틸 ────────────────────────────────────────────── */
@@ -398,11 +480,27 @@
     statusMsg.classList.remove('hidden');
   }
 
-  /* ── 시작 ────────────────────────────────────────────── */
+  /* ── 이벤트 ──────────────────────────────────────────── */
   castBtn.addEventListener('click', () => {
     if (state === 'IDLE') goCasting();
   });
 
+  // 개별 팔기 (이벤트 위임)
+  if (inventoryList) {
+    inventoryList.addEventListener('click', e => {
+      const btn = e.target.closest('.inv-sell-btn');
+      if (!btn || isSelling) return;
+      const id = btn.dataset.id;
+      if (id) sellItem(id);
+    });
+  }
+
+  // 전체 팔기
+  if (sellAllBtn) {
+    sellAllBtn.addEventListener('click', sellAll);
+  }
+
+  /* ── 초기 렌더 ───────────────────────────────────────── */
   updateCoinDisplay();
   updateCatchesDisplay();
 })();
