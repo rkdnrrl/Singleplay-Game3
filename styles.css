@@ -187,8 +187,6 @@ html, body {
   image-rendering: crisp-edges;
   display: block;
 }
-.result-emoji { font-size: 2.8rem; line-height: 1; }
-.result-emoji.hidden { display: none !important; }
 .result-body { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
 .result-rarity { font-size: 0.68rem; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; }
 .result-rarity.rarity-common    { color: var(--common); }
@@ -240,7 +238,6 @@ html, body {
   image-rendering: crisp-edges;
   display: block;
 }
-.inv-thumb-emoji { font-size: 1.3rem; line-height: 1; }
 .inv-emoji { font-size: 1.3rem; }
 .inv-emoji.hidden { display: none !important; }
 .inv-name  { flex: 1; }
