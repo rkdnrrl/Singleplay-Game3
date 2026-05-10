@@ -142,6 +142,11 @@
   const urlParams   = new URLSearchParams(window.location.search);
   const alpToken    = urlParams.get('token');
   const platformApi = window.__ALP_PLATFORM_API__ || '';
+  /** 플랫폼 미니게임 ID — `config.js`에서 `window.__ALP_CATCH_GAME_ID__ = 2` 등으로 덮어쓸 수 있음 */
+  const catchGameId = (() => {
+    const n = Number(window.__ALP_CATCH_GAME_ID__);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2;
+  })();
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
@@ -186,7 +191,7 @@
       .catch(() => {});
 
     // 보관함 로드 (미판매 아이템)
-    fetch(`${platformApi}/api/catches/inventory?limit=50`, {
+    fetch(`${platformApi}/api/catches/in-game/${catchGameId}?limit=50`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
