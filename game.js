@@ -1378,7 +1378,7 @@
             rarity:    item.rarity,
             size:      item.size,
             coinValue: item.coins,
-            pixelArt,
+            // pixelArt는 서버가 자체 생성 (클라이언트 포맷 불일치 방지)
           }),
         });
         const data = res.ok ? await res.json() : null;
