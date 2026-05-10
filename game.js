@@ -1556,12 +1556,22 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(rw, rh);
+    if (renderer.outputColorSpace !== undefined) {
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
+    if (renderer.toneMappingExposure !== undefined) {
+      renderer.toneMappingExposure = 1.22;
+    }
     host.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0x9ec8ff, 0x1a1a2e, 0.9));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.5);
-    dir.position.set(4, 8, 6);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.52));
+    scene.add(new THREE.HemisphereLight(0xd6e4ff, 0x6a7088, 1.15));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.82);
+    dir.position.set(5, 9, 7);
     scene.add(dir);
+    const fill = new THREE.DirectionalLight(0xe8f0ff, 0.38);
+    fill.position.set(-6, 4, -5);
+    scene.add(fill);
 
     const layers = Math.max(1, Math.min(8, VOXEL_EXTRUDE_LAYERS));
     const layerH = VOXEL_LAYER_HEIGHT;
@@ -1588,7 +1598,7 @@
           dummy.updateMatrix();
           mesh.setMatrixAt(ii, dummy.matrix);
           tmpColor.set(baseHex);
-          if (ly > 0) tmpColor.multiplyScalar(1 - ly * 0.09);
+          if (ly > 0) tmpColor.multiplyScalar(1 - ly * 0.035);
           mesh.setColorAt(ii, tmpColor);
           ii += 1;
         }
