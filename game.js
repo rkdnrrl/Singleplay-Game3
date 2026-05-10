@@ -191,7 +191,7 @@
       .catch(() => {});
 
     // 보관함 로드 (미판매 아이템)
-    fetch(`${platformApi}/api/catches/in-game/${catchGameId}?limit=50`, {
+    fetch(`${platformApi}/api/catches/inventory?limit=50`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
