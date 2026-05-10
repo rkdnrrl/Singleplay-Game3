@@ -1012,6 +1012,29 @@
   const VOXEL_LAYER_HEIGHT = 0.86;
   const VOXEL_PLAN = 0.9;
 
+  /**
+   * 보관함 3D 뷰: 이름으로 생물 느낌 애니 (펄럭 / 헤엄).
+   * @returns {'flap'|'swim'|null}
+   */
+  function inferVoxelAnimProfile(name) {
+    const s = String(name || '');
+    if (!s) return null;
+    if (/(해파리|말미잘|해삼|산호|산호초|맨오브워)/.test(s)) {
+      return 'flap';
+    }
+    if (/(오징어|문어|쭈꾸미|낙지|먹물|촉수|갑오징어|한치)/.test(s)) {
+      return 'flap';
+    }
+    if (
+      /(물고기|어류|고등어|멸치|연어|참치|상어|복어|가오리|해마|돌고래|고래|조기|삼치|광어|도미|날치|메기|붕어|잉어|장어|미꾸라지|빙어|명태|대구|아귀|청어|가자미|다랑어|방어|우럭|농어|숭어|은어|돔|쏨뱅이|살치|물범|바다사자|물개|펭귄|거북|바다거북|수달)/.test(
+        s
+      )
+    ) {
+      return 'swim';
+    }
+    return null;
+  }
+
   /** 희귀할수록 판정 타이트·속도↑·게이지 벌칙↑ (전설은 매우 어렵게) */
   const MINI_CONFIG = {
     common: {
@@ -1531,7 +1554,8 @@
       } catch {
         /* ignore */
       }
-      voxelViewerCtx.scene.remove(voxelViewerCtx.mesh);
+      const root = voxelViewerCtx.meshRoot || voxelViewerCtx.mesh;
+      voxelViewerCtx.scene.remove(root);
       voxelViewerCtx.mesh.geometry.dispose();
       voxelViewerCtx.mesh.material.dispose();
       voxelViewerCtx.renderer.dispose();
@@ -1542,7 +1566,7 @@
     }
   }
 
-  function initVoxelViewerScene(THREE, OrbitControls, art) {
+  function initVoxelViewerScene(THREE, OrbitControls, art, itemName) {
     const host = voxelViewerCanvasHost;
     if (!host) return;
     host.innerHTML = '';
@@ -1606,11 +1630,16 @@
     }
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    scene.add(mesh);
+    const meshRoot = new THREE.Group();
+    meshRoot.add(mesh);
+    scene.add(meshRoot);
 
     const yExtent = layers * layerH;
     const midY = -yExtent / 2;
     const maxDim = Math.max(art.w, art.h, yExtent, 1);
+    const animProfile = inferVoxelAnimProfile(itemName);
+    const animAmp = Math.min(1.25, Math.max(0.55, 22 / maxDim));
+    const animT0 = performance.now();
     const dist = maxDim * 1.35;
     camera.position.set(dist * 0.72, midY + dist * 0.58, dist * 0.88);
     camera.lookAt(0, midY, 0);
@@ -1637,6 +1666,10 @@
       renderer,
       controls,
       mesh,
+      meshRoot,
+      animProfile,
+      animT0,
+      animAmp,
       host,
       onResize,
       rafId: 0,
@@ -1645,6 +1678,33 @@
     function loop() {
       if (!voxelViewerCtx) return;
       voxelViewerCtx.rafId = requestAnimationFrame(loop);
+      const root = voxelViewerCtx.meshRoot;
+      const prof = voxelViewerCtx.animProfile;
+      const a = voxelViewerCtx.animAmp;
+      const t = (performance.now() - voxelViewerCtx.animT0) * 0.001;
+      if (prof === 'swim') {
+        root.position.x = Math.sin(t * 2.45) * 0.11 * a;
+        root.position.y = Math.sin(t * 4.1) * 0.035 * a;
+        root.position.z = Math.cos(t * 2.45) * 0.045 * a;
+        root.rotation.z = Math.sin(t * 2.85) * 0.15 * a;
+        root.rotation.y = Math.sin(t * 1.32 + 0.5) * 0.12 * a;
+        root.rotation.x = Math.sin(t * 1.05) * 0.05 * a;
+        root.scale.set(1, 1, 1);
+      } else if (prof === 'flap') {
+        const p = Math.sin(t * 3.35);
+        const q = Math.sin(t * 3.35 + 0.9);
+        root.scale.set(1 + p * 0.075 * a, 1 - p * 0.055 * a, 1 + q * 0.065 * a);
+        root.rotation.x = p * 0.12 * a;
+        root.rotation.z = q * 0.08 * a;
+        root.rotation.y = Math.sin(t * 1.8) * 0.05 * a;
+        root.position.x = Math.sin(t * 2.2) * 0.04 * a;
+        root.position.y = Math.sin(t * 2.9) * 0.055 * a;
+        root.position.z = 0;
+      } else {
+        root.position.set(0, 0, 0);
+        root.rotation.set(0, 0, 0);
+        root.scale.set(1, 1, 1);
+      }
       voxelViewerCtx.controls.update();
       voxelViewerCtx.renderer.render(voxelViewerCtx.scene, voxelViewerCtx.camera);
     }
@@ -1679,7 +1739,7 @@
     voxelViewerOverlay.classList.remove('hidden');
     requestAnimationFrame(() => {
       try {
-        initVoxelViewerScene(V.THREE, V.OrbitControls, art);
+        initVoxelViewerScene(V.THREE, V.OrbitControls, art, item.name);
       } catch {
         closeVoxelViewer();
         showStatus('3D 표시 중 오류가 났어요.');
