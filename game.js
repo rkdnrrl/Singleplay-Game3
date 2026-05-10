@@ -380,8 +380,9 @@
   const resultName        = document.getElementById('resultName');
   const resultSize        = document.getElementById('resultSize');
   const resultCoins       = document.getElementById('resultCoins');
-  const inventoryList     = document.getElementById('inventoryList');
-  const sellAllBtn        = document.getElementById('sellAllBtn');
+  const inventoryList       = document.getElementById('inventoryList');
+  const inventoryScrollWrap = document.getElementById('inventoryScrollWrap');
+  const sellAllBtn          = document.getElementById('sellAllBtn');
 
   /* ── 플랫폼 연동 ─────────────────────────────────────── */
   const urlParams   = new URLSearchParams(window.location.search);
@@ -507,12 +508,27 @@
   }
 
   /* ── 보관함 ──────────────────────────────────────────── */
+  function syncInventoryScrollOverflow() {
+    const wrap = inventoryScrollWrap;
+    if (!wrap) return;
+    if (inventory.length === 0) {
+      wrap.classList.remove('has-overflow', 'is-dragging');
+      wrap.scrollTop = 0;
+      return;
+    }
+    requestAnimationFrame(() => {
+      const overflow = wrap.scrollHeight > wrap.clientHeight + 1;
+      wrap.classList.toggle('has-overflow', overflow);
+    });
+  }
+
   function renderInventory() {
     if (!inventoryList) return;
 
     if (inventory.length === 0) {
       inventoryList.innerHTML = '<p class="log-empty">보관함이 비어있습니다</p>';
       if (sellAllBtn) sellAllBtn.classList.add('hidden');
+      syncInventoryScrollOverflow();
       return;
     }
 
@@ -542,10 +558,11 @@
           item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
             ? item.pixelArt
             : generateCatchPixelArt(itemStubForArt(item));
-        mountPixelArt(thumb, art, 36, 26);
+        mountPixelArt(thumb, art, 40, 28);
       }
       inventoryList.appendChild(el);
     });
+    syncInventoryScrollOverflow();
   }
 
   async function sellItem(catchId) {
@@ -839,7 +856,74 @@
     sellAllBtn.addEventListener('click', sellAll);
   }
 
+  /* 보관함: 내용이 영역보다 길면 세로 드래그로 스크롤 */
+  (function setupInventoryDragScroll() {
+    const wrap = inventoryScrollWrap;
+    if (!wrap) return;
+
+    let dragging = false;
+    let startY = 0;
+    let startScroll = 0;
+    let ptrId = null;
+
+    wrap.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!wrap.classList.contains('has-overflow')) return;
+        if (e.pointerType !== 'mouse') return;
+        if (e.button !== 0) return;
+        if (e.target.closest('button, input, a, [role="button"]')) return;
+        dragging = true;
+        startY = e.clientY;
+        startScroll = wrap.scrollTop;
+        ptrId = e.pointerId;
+        wrap.classList.add('is-dragging');
+        try {
+          wrap.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      },
+      { passive: true }
+    );
+
+    wrap.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!dragging || e.pointerId !== ptrId) return;
+        wrap.scrollTop = startScroll - (e.clientY - startY);
+      },
+      { passive: true }
+    );
+
+    function endDrag(e) {
+      if (ptrId != null && e && e.pointerId !== ptrId) return;
+      dragging = false;
+      wrap.classList.remove('is-dragging');
+      const id = ptrId;
+      ptrId = null;
+      if (id != null) {
+        try {
+          wrap.releasePointerCapture(id);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', endDrag);
+    wrap.addEventListener('lostpointercapture', () => {
+      dragging = false;
+      ptrId = null;
+      wrap.classList.remove('is-dragging');
+    });
+
+    window.addEventListener('resize', () => syncInventoryScrollOverflow());
+  })();
+
   /* ── 초기 렌더 ───────────────────────────────────────── */
   updateCoinDisplay();
   updateCatchesDisplay();
+  renderInventory();
 })();
