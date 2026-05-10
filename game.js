@@ -742,6 +742,30 @@
     },
   };
 
+  /** `easyEpic` 테스트 시 에픽·전설 미니게임만 희귀급에 가깝게 완화 */
+  const MINI_EPIC_SOFT = {
+    epic: {
+      zoneRatio: 0.30,
+      speed: 86,
+      erratic: false,
+      erraticChance: 0,
+      barRatio: 0.20,
+      gainMul: 1.05,
+      lossMul: 0.92,
+      overlapNeed: 0.32,
+    },
+    legendary: {
+      zoneRatio: 0.26,
+      speed: 96,
+      erratic: true,
+      erraticChance: 0.006,
+      barRatio: 0.19,
+      gainMul: 0.9,
+      lossMul: 1.05,
+      overlapNeed: 0.35,
+    },
+  };
+
   /* ── DOM ────────────────────────────────────────────── */
   const coinCountEl       = document.getElementById('coinCount');
   const totalCatchesEl    = document.getElementById('totalCatches');
@@ -773,6 +797,12 @@
     const n = Number(window.__ALP_CATCH_GAME_ID__);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2;
   })();
+
+  /** 에픽·전설 테스트: 일반 출현 비중↓ · 미니게임 판정 완화. `?easyEpic=1` 또는 `window.__ALP_EASY_EPIC_TEST__` */
+  const easyEpicTest =
+    urlParams.get('easyEpic') === '1' ||
+    urlParams.get('testEpic') === '1' ||
+    window.__ALP_EASY_EPIC_TEST__ === true;
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
@@ -962,10 +992,22 @@
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
 
   /** 이름 없이 희귀도만 랜덤으로 결정 (미니게임 시작 전에 사용)
-   *  common 90% / rare 7% / epic 2.5% / legendary 0.5%
+   *  기본: common 90% / rare 7% / epic 2.5% / legendary 0.5%
+   *  easyEpic: common 22% / rare 28% / epic 38% / legendary 12%
    */
   function rollRarity() {
-    const wC = 180, wR = 14, wE = 5, wL = 1; // 합계 200
+    let wC; let wR; let wE; let wL;
+    if (easyEpicTest) {
+      wC = 22;
+      wR = 28;
+      wE = 38;
+      wL = 12;
+    } else {
+      wC = 180;
+      wR = 14;
+      wE = 5;
+      wL = 1;
+    }
     let r = Math.random() * (wC + wR + wE + wL);
     if ((r -= wC) <= 0) return 'common';
     if ((r -= wR) <= 0) return 'rare';
@@ -1215,7 +1257,11 @@
 
   /* ── 미니게임 ────────────────────────────────────────── */
   function startMinigame(item) {
-    const cfg = MINI_CONFIG[item.rarity] || MINI_CONFIG.common;
+    let cfg = MINI_CONFIG[item.rarity] || MINI_CONFIG.common;
+    if (easyEpicTest) {
+      const soft = MINI_EPIC_SOFT[item.rarity];
+      if (soft) cfg = soft;
+    }
     mini.cfg = cfg;
     mini.trackH = minigameTrack.clientHeight || 160;
     mini.zoneH  = Math.floor(mini.trackH * cfg.zoneRatio);
