@@ -1108,6 +1108,8 @@
 
   let sellConfirmPayload = null;
   let voxelViewerCtx = null;
+  /** 마우스: 드래그 스크롤 후 뜨는 click 으로 3D가 중복 열리지 않게 */
+  let suppressNextInvListClick = false;
 
   /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 보관함이 터치 가로채기 방지 */
   let minigameScrollLocked = false;
@@ -2042,6 +2044,10 @@
   // 보관함: 팔기 버튼 / 그 외 영역 클릭 → 3D 복셀 보기
   if (inventoryList) {
     inventoryList.addEventListener('click', e => {
+      if (suppressNextInvListClick) {
+        suppressNextInvListClick = false;
+        return;
+      }
       const sellBtn = e.target.closest('.inv-sell-btn');
       if (sellBtn) {
         if (isSelling) return;
@@ -2123,55 +2129,34 @@
       );
     }
 
-    let dragging = false;
-    let startMain = 0;
-    let startScroll = 0;
+    const DRAG_THRESHOLD_PX = 8;
     let ptrId = null;
+    let dragCommitted = false;
+    let startX = 0;
+    let startY = 0;
+    let startScrollL = 0;
+    let startScrollT = 0;
     let dragHorizontal = false;
+    let pendingInvRow = null;
 
-    wrap.addEventListener(
-      'pointerdown',
-      (e) => {
-        if (!wrap.classList.contains('has-overflow')) return;
-        if (e.pointerType !== 'mouse') return;
-        if (e.button !== 0) return;
-        if (e.target.closest('button, input, a, [role="button"]')) return;
-        /* 카드 클릭 → 3D 보기: 캡처하면 click 이 안 뜸(PC). 아이템 위에서는 드래그 스크롤 안 함 */
-        if (e.target.closest('.inv-item')) return;
-        dragging = true;
-        dragHorizontal = inventoryDragIsHorizontal();
-        startMain = dragHorizontal ? e.clientX : e.clientY;
-        startScroll = dragHorizontal ? wrap.scrollLeft : wrap.scrollTop;
-        ptrId = e.pointerId;
-        wrap.classList.add('is-dragging');
-        try {
-          wrap.setPointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
+    function cleanupPointerSession(openVoxelOnTap) {
+      if (ptrId === null) return;
+      if (openVoxelOnTap) {
+        if (!dragCommitted && pendingInvRow && pendingInvRow.dataset.invIdx != null) {
+          suppressNextInvListClick = true;
+          const item = inventory[Number(pendingInvRow.dataset.invIdx)];
+          if (item) void openInventoryVoxelFromItem(item);
+        } else if (dragCommitted) {
+          suppressNextInvListClick = true;
         }
-      },
-      { passive: true }
-    );
-
-    wrap.addEventListener(
-      'pointermove',
-      (e) => {
-        if (!dragging || e.pointerId !== ptrId) return;
-        if (dragHorizontal) {
-          wrap.scrollLeft = startScroll - (e.clientX - startMain);
-        } else {
-          wrap.scrollTop = startScroll - (e.clientY - startMain);
-        }
-      },
-      { passive: true }
-    );
-
-    function endDrag(e) {
-      if (ptrId != null && e && e.pointerId !== ptrId) return;
-      dragging = false;
-      wrap.classList.remove('is-dragging');
+      } else if (dragCommitted) {
+        suppressNextInvListClick = true;
+      }
+      pendingInvRow = null;
+      dragCommitted = false;
       const id = ptrId;
       ptrId = null;
+      wrap.classList.remove('is-dragging');
       if (id != null) {
         try {
           wrap.releasePointerCapture(id);
@@ -2181,12 +2166,61 @@
       }
     }
 
-    wrap.addEventListener('pointerup', endDrag);
-    wrap.addEventListener('pointercancel', endDrag);
-    wrap.addEventListener('lostpointercapture', () => {
-      dragging = false;
-      ptrId = null;
-      wrap.classList.remove('is-dragging');
+    wrap.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!wrap.classList.contains('has-overflow')) return;
+        if (e.pointerType !== 'mouse') return;
+        if (e.button !== 0) return;
+        if (e.target.closest('button, input, a, [role="button"]')) return;
+        ptrId = e.pointerId;
+        dragCommitted = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        startScrollL = wrap.scrollLeft;
+        startScrollT = wrap.scrollTop;
+        dragHorizontal = inventoryDragIsHorizontal();
+        pendingInvRow = e.target.closest('.inv-item');
+      },
+      { passive: true }
+    );
+
+    wrap.addEventListener(
+      'pointermove',
+      (e) => {
+        if (ptrId === null || e.pointerId !== ptrId) return;
+        const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+        if (!dragCommitted) {
+          if (dist <= DRAG_THRESHOLD_PX) return;
+          dragCommitted = true;
+          wrap.classList.add('is-dragging');
+          try {
+            wrap.setPointerCapture(ptrId);
+          } catch {
+            /* ignore */
+          }
+        }
+        if (dragHorizontal) {
+          wrap.scrollLeft = startScrollL - (e.clientX - startX);
+        } else {
+          wrap.scrollTop = startScrollT - (e.clientY - startY);
+        }
+      },
+      { passive: true }
+    );
+
+    wrap.addEventListener('pointerup', (e) => {
+      if (ptrId === null || e.pointerId !== ptrId) return;
+      cleanupPointerSession(true);
+    });
+    wrap.addEventListener('pointercancel', (e) => {
+      if (ptrId === null || e.pointerId !== ptrId) return;
+      cleanupPointerSession(false);
+    });
+    wrap.addEventListener('lostpointercapture', (e) => {
+      if (ptrId !== null && e.pointerId === ptrId) {
+        cleanupPointerSession(false);
+      }
     });
 
     /* 세로 스트립(가로 스크롤): PC는 카드 클릭을 살리기 위해 휠·트랙패드로 좌우 이동 */
