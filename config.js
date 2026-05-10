@@ -11,5 +11,5 @@
   }
   // 필요 시 주석 해제
   // window.__ALP_CATCH_GAME_ID__ = 2;
-   window.__ALP_EASY_EPIC_TEST__ = true;
+  //window.__ALP_EASY_EPIC_TEST__ = true;
 })();
