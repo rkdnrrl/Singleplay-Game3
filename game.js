@@ -989,6 +989,24 @@
     hostEl.appendChild(canvas);
   }
 
+  /** 3D 복셀용 표시 색 (2D 캔버스와 동일 규칙) */
+  function voxelDisplayHexForCell(art, cidx) {
+    if (cidx === 0) return null;
+    const raw = art.palette[cidx] || PIXEL_MAT;
+    const s = art.fromEmoji ? String(raw).toLowerCase() : pixelPaintColor(raw, cidx);
+    if (typeof s === 'string' && /^#[0-9a-fA-F]{6}$/.test(s)) return s;
+    return '#6a6a8a';
+  }
+
+  function countSolidVoxels(art) {
+    if (!art || !art.cells) return 0;
+    let n = 0;
+    for (let i = 0; i < art.cells.length; i += 1) {
+      if (art.cells[i] !== 0) n += 1;
+    }
+    return n;
+  }
+
   /** 희귀할수록 판정 타이트·속도↑·게이지 벌칙↑ (전설은 매우 어렵게) */
   const MINI_CONFIG = {
     common: {
@@ -1083,8 +1101,13 @@
   const sellConfirmCancel   = document.getElementById('sellConfirmCancel');
   const sellConfirmOk       = document.getElementById('sellConfirmOk');
   const inventoryDock       = document.getElementById('inventoryDock');
+  const voxelViewerOverlay  = document.getElementById('voxelViewerOverlay');
+  const voxelViewerCanvasHost = document.getElementById('voxelViewerCanvasHost');
+  const voxelViewerTitle    = document.getElementById('voxelViewerTitle');
+  const voxelViewerClose    = document.getElementById('voxelViewerClose');
 
   let sellConfirmPayload = null;
+  let voxelViewerCtx = null;
 
   /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 보관함이 터치 가로채기 방지 */
   let minigameScrollLocked = false;
@@ -1437,10 +1460,11 @@
     }
 
     inventoryList.innerHTML = '';
-    inventory.forEach(item => {
+    inventory.forEach((item, invIdx) => {
       const canSell = isLoggedIn && item.id;
       const el = document.createElement('div');
       el.className = `inv-item rarity-${item.rarity}`;
+      el.dataset.invIdx = String(invIdx);
       el.innerHTML = `
         <div class="inv-thumb" data-thumb></div>
         <span class="inv-name">${item.name}</span>
@@ -1488,6 +1512,151 @@
           : '팔 수 있는 아이템이 없습니다.';
     }
     sellConfirmOverlay.classList.remove('hidden');
+  }
+
+  function closeVoxelViewer() {
+    if (voxelViewerOverlay) voxelViewerOverlay.classList.add('hidden');
+    if (voxelViewerCtx) {
+      cancelAnimationFrame(voxelViewerCtx.rafId);
+      window.removeEventListener('resize', voxelViewerCtx.onResize);
+      try {
+        voxelViewerCtx.controls.dispose();
+      } catch {
+        /* ignore */
+      }
+      voxelViewerCtx.scene.remove(voxelViewerCtx.mesh);
+      voxelViewerCtx.mesh.geometry.dispose();
+      voxelViewerCtx.mesh.material.dispose();
+      voxelViewerCtx.renderer.dispose();
+      const cEl = voxelViewerCtx.renderer.domElement;
+      if (cEl && cEl.parentNode) cEl.parentNode.removeChild(cEl);
+      if (voxelViewerCanvasHost) voxelViewerCanvasHost.innerHTML = '';
+      voxelViewerCtx = null;
+    }
+  }
+
+  function initVoxelViewerScene(THREE, OrbitControls, art) {
+    const host = voxelViewerCanvasHost;
+    if (!host) return;
+    host.innerHTML = '';
+    const rw = Math.max(1, host.clientWidth || 320);
+    const rh = Math.max(1, host.clientHeight || 280);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x08081a);
+
+    const camera = new THREE.PerspectiveCamera(48, rw / rh, 0.1, 4000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(rw, rh);
+    host.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0x9ec8ff, 0x1a1a2e, 0.9));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+    dir.position.set(4, 8, 6);
+    scene.add(dir);
+
+    const count = countSolidVoxels(art);
+    const geometry = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+    const material = new THREE.MeshLambertMaterial();
+    const mesh = new THREE.InstancedMesh(geometry, material, count);
+    const dummy = new THREE.Object3D();
+    const tmpColor = new THREE.Color();
+    let ii = 0;
+    for (let py = 0; py < art.h; py += 1) {
+      for (let px = 0; px < art.w; px += 1) {
+        const cidx = art.cells[py * art.w + px];
+        if (cidx === 0) continue;
+        dummy.position.set(px - art.w / 2 + 0.5, 0.46, py - art.h / 2 + 0.5);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(ii, dummy.matrix);
+        tmpColor.set(voxelDisplayHexForCell(art, cidx));
+        mesh.setColorAt(ii, tmpColor);
+        ii += 1;
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    scene.add(mesh);
+
+    const maxDim = Math.max(art.w, art.h, 1);
+    const dist = maxDim * 1.35;
+    camera.position.set(dist * 0.72, dist * 0.92, dist * 0.88);
+    camera.lookAt(0, 0, 0);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0.35, 0);
+    controls.update();
+
+    function onResize() {
+      if (!voxelViewerCtx) return;
+      const nw = Math.max(1, host.clientWidth);
+      const nh = Math.max(1, host.clientHeight);
+      voxelViewerCtx.camera.aspect = nw / nh;
+      voxelViewerCtx.camera.updateProjectionMatrix();
+      voxelViewerCtx.renderer.setSize(nw, nh);
+    }
+    window.addEventListener('resize', onResize);
+
+    voxelViewerCtx = {
+      scene,
+      camera,
+      renderer,
+      controls,
+      mesh,
+      host,
+      onResize,
+      rafId: 0,
+    };
+
+    function loop() {
+      if (!voxelViewerCtx) return;
+      voxelViewerCtx.rafId = requestAnimationFrame(loop);
+      voxelViewerCtx.controls.update();
+      voxelViewerCtx.renderer.render(voxelViewerCtx.scene, voxelViewerCtx.camera);
+    }
+    loop();
+  }
+
+  async function openInventoryVoxelFromItem(item) {
+    if (!voxelViewerOverlay || !voxelViewerCanvasHost || !voxelViewerTitle) return;
+    const V = window.__VOXEL__;
+    if (!V || !V.THREE || !V.OrbitControls) {
+      showStatus('3D 보기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+      setTimeout(() => {
+        if (statusMsg) statusMsg.classList.add('hidden');
+      }, 3200);
+      return;
+    }
+    let art =
+      item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
+        ? item.pixelArt
+        : null;
+    if (!art) art = await generateCatchPixelArt(itemStubForArt(item));
+    if (!art || !art.cells || !art.cells.length) return;
+    if (countSolidVoxels(art) === 0) {
+      showStatus('표시할 픽셀이 없어요.');
+      setTimeout(() => {
+        if (statusMsg) statusMsg.classList.add('hidden');
+      }, 2200);
+      return;
+    }
+    voxelViewerTitle.textContent = item.name || '3D 보기';
+    closeVoxelViewer();
+    voxelViewerOverlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      try {
+        initVoxelViewerScene(V.THREE, V.OrbitControls, art);
+      } catch {
+        closeVoxelViewer();
+        showStatus('3D 표시 중 오류가 났어요.');
+        setTimeout(() => {
+          if (statusMsg) statusMsg.classList.add('hidden');
+        }, 3200);
+      }
+    });
   }
 
   async function sellItem(catchId) {
@@ -1870,13 +2039,21 @@
     if (state === 'IDLE') goCasting();
   });
 
-  // 개별 팔기 (이벤트 위임)
+  // 보관함: 팔기 버튼 / 그 외 영역 클릭 → 3D 복셀 보기
   if (inventoryList) {
     inventoryList.addEventListener('click', e => {
-      const btn = e.target.closest('.inv-sell-btn');
-      if (!btn || isSelling) return;
-      const id = btn.dataset.id;
-      if (id) openSellConfirm({ type: 'one', id });
+      const sellBtn = e.target.closest('.inv-sell-btn');
+      if (sellBtn) {
+        if (isSelling) return;
+        const id = sellBtn.dataset.id;
+        if (id) openSellConfirm({ type: 'one', id });
+        return;
+      }
+      if (e.target.closest('button')) return;
+      const row = e.target.closest('.inv-item');
+      if (!row || row.dataset.invIdx == null) return;
+      const item = inventory[Number(row.dataset.invIdx)];
+      if (item) void openInventoryVoxelFromItem(item);
     });
   }
 
@@ -1916,9 +2093,22 @@
   }
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (voxelViewerOverlay && !voxelViewerOverlay.classList.contains('hidden')) {
+      closeVoxelViewer();
+      return;
+    }
     if (!sellConfirmOverlay || sellConfirmOverlay.classList.contains('hidden')) return;
     closeSellConfirm();
   });
+
+  if (voxelViewerClose) {
+    voxelViewerClose.addEventListener('click', closeVoxelViewer);
+  }
+  if (voxelViewerOverlay) {
+    voxelViewerOverlay.addEventListener('click', (e) => {
+      if (e.target === voxelViewerOverlay) closeVoxelViewer();
+    });
+  }
 
   /* 보관함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 */
   (function setupInventoryDragScroll() {
