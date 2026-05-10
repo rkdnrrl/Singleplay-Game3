@@ -1240,7 +1240,13 @@
       const type = aiData.type || UNIFIED_TYPE;
       const size = rollSize(rarity);
       const coins = computeCoinValue(rarity, size, type);
-      item = { name: aiData.name, type, rarity, size, coins, emoji: aiData.emoji || '' };
+      const emoji = aiData.emoji || '';
+      // AI 이모지로 픽셀아트 생성 (이름에 맞는 그림)
+      const seed = hashPixelArtSeed({ name: aiData.name });
+      const pixelArt = emoji
+        ? rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed)
+        : null;
+      item = { name: aiData.name, type, rarity, size, coins, emoji, pixelArt };
     } else {
       item = rollItemFromRarity(rarity);
     }
@@ -1340,10 +1346,28 @@
   document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); onPress(); } });
   document.addEventListener('keyup',   e => { if (e.code === 'Space') onRelease(); });
 
+  /* ── 픽셀아트 서버 전송용 정제 (palette ≤ 24, cells 정수 배열) ── */
+  function serializePixelArt(art) {
+    if (!art || !Array.isArray(art.cells) || !Array.isArray(art.palette)) return null;
+    const MAX_P = 24;
+    // palette hex 검증
+    const validPalette = art.palette.filter(c => /^#[0-9a-fA-F]{6}$/.test(c));
+    if (validPalette.length === 0) return null;
+    const palette = validPalette.slice(0, MAX_P);
+    const maxIdx = palette.length - 1;
+    const cells = Array.from(art.cells).map(n => {
+      const i = Number(n) | 0;
+      return i < 0 ? 0 : i > maxIdx ? maxIdx : i;
+    });
+    if (cells.length !== art.w * art.h) return null;
+    return { w: art.w, h: art.h, palette, cells };
+  }
+
   /* ── 결과 표시 ───────────────────────────────────────── */
   function showResult(item) {
     resultCard.className = `result-card rarity-${item.rarity}`;
-    const art = generateCatchPixelArt(item);
+    // AI 이모지 픽셀아트가 있으면 우선 사용, 없으면 이름 기반 생성
+    const art = item.pixelArt || generateCatchPixelArt(item);
     if (resultSpriteHost) {
       mountPixelArt(resultSpriteHost, art, 128, 128);
     }
@@ -1361,31 +1385,35 @@
   /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
-    const pixelArt = generateCatchPixelArt(item);
+    // AI 픽셀아트(rare+)는 정제해서 전송, 일반은 서버가 자체 생성
+    const pixelArtForServer = item.pixelArt ? serializePixelArt(item.pixelArt) : null;
 
     if (isLoggedIn && alpToken && platformApi) {
       try {
+        const body = {
+          itemName:  item.name,
+          itemEmoji: item.emoji || '',
+          itemType:  item.type,
+          rarity:    item.rarity,
+          size:      item.size,
+          coinValue: item.coins,
+        };
+        if (pixelArtForServer) body.pixelArt = pixelArtForServer;
+
         const res = await fetch(`${platformApi}/api/catches`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${alpToken}`,
           },
-          body: JSON.stringify({
-            itemName:  item.name,
-            itemEmoji: item.emoji || '',
-            itemType:  item.type,
-            rarity:    item.rarity,
-            size:      item.size,
-            coinValue: item.coins,
-            // pixelArt는 서버가 자체 생성 (클라이언트 포맷 불일치 방지)
-          }),
+          body: JSON.stringify(body),
         });
         const data = res.ok ? await res.json() : null;
         catchId = data?.catch?.id ?? null;
       } catch {}
     }
 
+    const localPixelArt = item.pixelArt || generateCatchPixelArt(item);
     inventory.push({
       id: catchId,
       name: item.name,
@@ -1393,7 +1421,7 @@
       size: item.size,
       rarity: item.rarity,
       coins: item.coins,
-      pixelArt,
+      pixelArt: localPixelArt,
     });
     renderInventory();
   }
