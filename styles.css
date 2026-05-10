@@ -174,7 +174,21 @@ html, body {
   50%     { box-shadow: 0 0 40px rgba(255,215,0,1),   0 0 80px rgba(255,215,0,0.5); }
 }
 
-.result-emoji { font-size: 2.8rem; }
+.result-preview {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4rem;
+  min-height: 3.5rem;
+}
+.result-sprite-host .pixel-art-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+.result-emoji { font-size: 2.8rem; line-height: 1; }
+.result-emoji.hidden { display: none !important; }
 .result-body { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
 .result-rarity { font-size: 0.68rem; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; }
 .result-rarity.rarity-common    { color: var(--common); }
@@ -213,7 +227,22 @@ html, body {
 .inv-item.rarity-epic      { border-color: var(--epic); }
 .inv-item.rarity-legendary { border-color: var(--legendary); background: rgba(255,215,0,0.05); }
 
+.inv-thumb {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inv-thumb .pixel-art-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+.inv-thumb-emoji { font-size: 1.3rem; line-height: 1; }
 .inv-emoji { font-size: 1.3rem; }
+.inv-emoji.hidden { display: none !important; }
 .inv-name  { flex: 1; }
 .inv-coins { color: var(--coin); font-family: "Jua", sans-serif; white-space: nowrap; }
 .inv-sell-btn {

@@ -35,6 +35,80 @@
   const RARITY_WEIGHT = { common: 55, rare: 28, epic: 13, legendary: 4 };
   const RARITY_LABEL  = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
 
+  /* ── 픽셀 스프라이트 (DB JSON + 화면 표시) ───────────── */
+  const PIXEL_PALETTES = {
+    common:    ['#0d1b2a', '#415a77', '#778da9', '#e0e1dd', '#1b263b', '#a8dadc'],
+    rare:      ['#1a0a2e', '#5a189a', '#9d4edd', '#c77dff', '#e0aaff', '#10002b'],
+    epic:      ['#1a0505', '#6a040f', '#9d0208', '#d00000', '#ffba08', '#370617'],
+    legendary: ['#1a1200', '#b8860b', '#ffd700', '#fff4b8', '#8b6914', '#ffec8b'],
+  };
+
+  function hashCatchSeed(item) {
+    const s = `${item.name}\0${item.size}\0${item.rarity}\0${item.type}`;
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i += 1) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  /** 플랫폼 DB에 넣을 형식: { w, h, palette: hex[], cells: index[] } */
+  function generateCatchPixelArt(item) {
+    const w = 14;
+    const h = 10;
+    const palette = PIXEL_PALETTES[item.rarity] || PIXEL_PALETTES.common;
+    let state = hashCatchSeed(item);
+    function rnd() {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 0xffffffff;
+    }
+    const cells = [];
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        const nx = ((x + 0.5) / w) * 2 - 1;
+        const ny = ((y + 0.5) / h) * 2 - 1;
+        const body = (nx * nx * 0.88 + ny * ny) < 0.42;
+        const tail = nx < -0.32 && Math.abs(ny) < 0.4;
+        const eye = nx > 0.22 && nx < 0.4 && ny > -0.12 && ny < 0.16;
+        let idx;
+        if (eye) {
+          idx = Math.min(5, palette.length - 1);
+        } else if (body || tail) {
+          const strip = Math.floor((x + y + rnd() * 2) % 3);
+          idx = 1 + strip;
+          if (rnd() > 0.8) idx = Math.min(palette.length - 2, idx + 1);
+        } else {
+          idx = 0;
+        }
+        cells.push(idx);
+      }
+    }
+    return { w, h, palette, cells };
+  }
+
+  function mountPixelArt(hostEl, art, cssW, cssH) {
+    if (!hostEl || !art || !Array.isArray(art.cells) || !Array.isArray(art.palette)) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = art.w;
+    canvas.height = art.h;
+    canvas.className = 'pixel-art-canvas';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    for (let i = 0; i < art.cells.length; i += 1) {
+      const cidx = art.cells[i];
+      const px = i % art.w;
+      const py = Math.floor(i / art.w);
+      ctx.fillStyle = art.palette[cidx] || '#000';
+      ctx.fillRect(px, py, 1, 1);
+    }
+    const scale = 4;
+    canvas.style.width = `${cssW != null ? cssW : art.w * scale}px`;
+    canvas.style.height = `${cssH != null ? cssH : art.h * scale}px`;
+    hostEl.innerHTML = '';
+    hostEl.appendChild(canvas);
+  }
+
   const MINI_CONFIG = {
     common:    { zoneRatio: 0.36, speed: 60,  erratic: false },
     rare:      { zoneRatio: 0.30, speed: 90,  erratic: false },
@@ -55,6 +129,7 @@
   const catchBar          = document.getElementById('catchBar');
   const catchProgressFill = document.getElementById('catchProgressFill');
   const resultCard        = document.getElementById('resultCard');
+  const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultEmoji       = document.getElementById('resultEmoji');
   const resultRarity      = document.getElementById('resultRarity');
   const resultName        = document.getElementById('resultName');
@@ -71,7 +146,7 @@
   let isLoggedIn   = false;
   let totalCoins   = 0;
   let totalCatches = 0;
-  let inventory    = []; // { id, name, emoji, rarity, coins }
+  let inventory    = []; // { id, name, emoji, rarity, coins, pixelArt? }
   let isSelling    = false;
 
   function updateCoinDisplay() {
@@ -124,6 +199,7 @@
               emoji: c.itemEmoji || '❓',
               rarity: c.rarity,
               coins: c.coinValue,
+              pixelArt: c.pixelArt || null,
             });
           });
           renderInventory();
@@ -210,7 +286,7 @@
       const el = document.createElement('div');
       el.className = `inv-item rarity-${item.rarity}`;
       el.innerHTML = `
-        <span class="inv-emoji">${item.emoji}</span>
+        <div class="inv-thumb" data-thumb></div>
         <span class="inv-name">${item.name}</span>
         <span class="inv-coins">${item.coins}🪙</span>
         ${canSell
@@ -218,6 +294,15 @@
           : `<span class="inv-sell-pending">${isLoggedIn ? '저장 중' : '로그인 필요'}</span>`
         }
       `;
+      const thumb = el.querySelector('[data-thumb]');
+      if (thumb) {
+        if (item.pixelArt && item.pixelArt.cells && item.pixelArt.palette) {
+          mountPixelArt(thumb, item.pixelArt, 36, 26);
+        } else {
+          thumb.textContent = item.emoji;
+          thumb.classList.add('inv-thumb-emoji');
+        }
+      }
       inventoryList.appendChild(el);
     });
   }
@@ -426,7 +511,14 @@
   /* ── 결과 표시 ───────────────────────────────────────── */
   function showResult(item) {
     resultCard.className = `result-card rarity-${item.rarity}`;
-    resultEmoji.textContent = item.emoji;
+    const art = generateCatchPixelArt(item);
+    if (resultSpriteHost) {
+      mountPixelArt(resultSpriteHost, art, 56, 40);
+      if (resultEmoji) resultEmoji.classList.add('hidden');
+    } else if (resultEmoji) {
+      resultEmoji.textContent = item.emoji;
+      resultEmoji.classList.remove('hidden');
+    }
     resultRarity.className  = `result-rarity rarity-${item.rarity}`;
     resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
@@ -441,6 +533,7 @@
   /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
+    const pixelArt = generateCatchPixelArt(item);
 
     if (isLoggedIn && alpToken && platformApi) {
       try {
@@ -457,6 +550,7 @@
             rarity:    item.rarity,
             size:      item.size,
             coinValue: item.coins,
+            pixelArt,
           }),
         });
         const data = res.ok ? await res.json() : null;
@@ -470,6 +564,7 @@
       emoji: item.emoji,
       rarity: item.rarity,
       coins: item.coins,
+      pixelArt,
     });
     renderInventory();
   }
