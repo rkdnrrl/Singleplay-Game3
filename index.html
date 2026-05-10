@@ -55,33 +55,33 @@
         </div>
       </div>
     </main>
+  </div>
 
-    <!-- 포획 결과 카드 -->
-    <div class="result-card hidden" id="resultCard">
-      <div class="result-preview">
-        <div class="result-sprite-host" id="resultSpriteHost" aria-hidden="true"></div>
-      </div>
-      <div class="result-body">
-        <span class="result-rarity" id="resultRarity"></span>
-        <span class="result-name" id="resultName"></span>
-        <span class="result-size" id="resultSize"></span>
-        <span class="result-added">📦 보관함에 추가됨</span>
-      </div>
-      <div class="result-coins" id="resultCoins"></div>
+  <!-- 보관함: 뷰포트 고정, 메인 게임 플로우·레이아웃과 분리 -->
+  <section class="log-panel inventory-dock" aria-label="보관함">
+    <div class="inv-header">
+      <h2 class="log-title">📦 보관함</h2>
+      <button class="sell-all-btn hidden" id="sellAllBtn" type="button"></button>
     </div>
+    <div class="inv-scroll-wrap" id="inventoryScrollWrap">
+      <div class="log-list" id="inventoryList">
+        <p class="log-empty">보관함이 비어있습니다</p>
+      </div>
+    </div>
+  </section>
 
-    <!-- 보관함 -->
-    <section class="log-panel">
-      <div class="inv-header">
-        <h2 class="log-title">📦 보관함</h2>
-        <button class="sell-all-btn hidden" id="sellAllBtn" type="button"></button>
-      </div>
-      <div class="inv-scroll-wrap" id="inventoryScrollWrap" aria-label="보관함 목록">
-        <div class="log-list" id="inventoryList">
-          <p class="log-empty">보관함이 비어있습니다</p>
-        </div>
-      </div>
-    </section>
+  <!-- 포획 결과 카드 (보관함 도킹보다 위) -->
+  <div class="result-card hidden" id="resultCard">
+    <div class="result-preview">
+      <div class="result-sprite-host" id="resultSpriteHost" aria-hidden="true"></div>
+    </div>
+    <div class="result-body">
+      <span class="result-rarity" id="resultRarity"></span>
+      <span class="result-name" id="resultName"></span>
+      <span class="result-size" id="resultSize"></span>
+      <span class="result-added">📦 보관함에 추가됨</span>
+    </div>
+    <div class="result-coins" id="resultCoins"></div>
   </div>
 
   <script src="config.js"></script>

@@ -23,7 +23,9 @@
   /** 이름이 밋밋해지는 단어 */
   const NAME_PRESTIGE_DRAB = ['쓰레기', '더미', '녹슨', '잔해', '(손상)'];
 
-  const CATCH_TYPES = ['fish', 'creature', 'artifact', 'crystal', 'debris'];
+  /** API·게임 로직용 단일 종류 (이름은 전 카테고리 단어 혼합) */
+  const UNIFIED_TYPE = 'cosmic';
+  const SILHOUETTE_TYPES = ['fish', 'creature', 'artifact', 'crystal', 'debris'];
 
   const NAME_PARTS = {
     fish: {
@@ -38,7 +40,7 @@
     },
     artifact: {
       pre:  ['위성', '고대', '멸망한 행성', '외계', '조각난', '불완전'],
-      core: ['파편', '석판', '회로', '모듈', '유물', '인공물', '잔해'],
+      core: ['파편', '석판', '회로', '모듈', '유물', '인공물', '잔해', '냉장고'],
       post: [' MK-Ⅱ', ' (손상)', ' 프로토타입', ''],
     },
     crystal: {
@@ -53,22 +55,246 @@
     },
   };
 
+  /** 이름 토큰 → 픽셀 실루엣 종류 (fish·creature·artifact·crystal·debris) */
+  const FRAGMENT_SILHOUETTE = (() => {
+    const m = {};
+    Object.keys(NAME_PARTS).forEach((cat) => {
+      const p = NAME_PARTS[cat];
+      [p.pre, p.core, p.post].forEach((arr) => {
+        arr.forEach((s) => {
+          const t = String(s).trim();
+          if (t) m[t] = cat;
+        });
+      });
+    });
+    return m;
+  })();
+
+  function hashWordSilhouette(word) {
+    let h = 2166136261;
+    const s = String(word);
+    for (let i = 0; i < s.length; i += 1) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return SILHOUETTE_TYPES[h % SILHOUETTE_TYPES.length];
+  }
+
   function pick(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  function generateCatchName(type) {
-    const p = NAME_PARTS[type] || NAME_PARTS.fish;
-    const a = pick(p.pre);
-    const b = pick(p.core);
-    const c = pick(p.post);
-    if (Math.random() < 0.35) return `${a} ${b}${c}`;
-    if (Math.random() < 0.5) return `${b}${c}`;
-    return `${a} ${b}${c}`;
+  function namePartsTrim(arr) {
+    return arr.map((s) => String(s).trim()).filter(Boolean);
   }
 
-  /** 0~100: 높을수록 희귀·에픽·전설 쪽 가중 */
-  function prestigeFromName(name) {
+  function cores(cat) {
+    return namePartsTrim(NAME_PARTS[cat].core);
+  }
+
+  function pres(cat) {
+    return namePartsTrim(NAME_PARTS[cat].pre);
+  }
+
+  function posts(cat) {
+    return namePartsTrim(NAME_PARTS[cat].post);
+  }
+
+  function pickDistinct(pool, avoid) {
+    const a = String(avoid || '');
+    const filt = pool.filter((x) => x !== a);
+    return pick(filt.length ? filt : pool);
+  }
+
+  /** 풀에 맞게 조사·어미만 정리 (멋대로 잘라내지 않음) */
+  function normSilWord(raw) {
+    const w = String(raw || '').trim();
+    if (!w) return '';
+    if (FRAGMENT_SILHOUETTE[w]) return w;
+    const josa1 = ['가', '이', '은', '는', '을', '를'];
+    const last = w[w.length - 1];
+    if (w.length >= 2 && josa1.indexOf(last) >= 0) {
+      const cut = w.slice(0, -1);
+      if (FRAGMENT_SILHOUETTE[cut]) return cut;
+    }
+    const josa2 = ['으로', '에서'];
+    for (let i = 0; i < josa2.length; i += 1) {
+      const p = josa2[i];
+      if (w.length > p.length && w.endsWith(p)) {
+        const cut = w.slice(0, -p.length);
+        if (FRAGMENT_SILHOUETTE[cut]) return cut;
+      }
+    }
+    return w;
+  }
+
+  /**
+   * 픽셀 합성 순서 [오른쪽·앞, …, 왼쪽·뒤].
+   * 문장형 이름이면 주어·수식과 본체 순서를 바로잡고, 아니면 null.
+   */
+  function silhouetteWordOrderFromName(name) {
+    const n = String(name || '').trim();
+    if (!n) return null;
+
+    const pair = (m, flip) => (flip ? [normSilWord(m[2]), normSilWord(m[1])] : [normSilWord(m[1]), normSilWord(m[2])]);
+    let m = n.match(/^조각난 (.+?)의 일부$/);
+    if (m) return [normSilWord(m[1])].filter(Boolean);
+    m = n.match(/^(.+?)가\s*된\s+(.+)$/);
+    if (m) return pair(m, false).filter(Boolean);
+    m = n.match(/^(.+?)이\s*된\s+(.+)$/);
+    if (m) return pair(m, false).filter(Boolean);
+    m = n.match(/^(.+?)의 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?)형 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?) 같은 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?)에서\s*온\s+(.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?)에 붙은 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?) 속의 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?)에 갇힌 (.+)$/);
+    if (m) return pair(m, true).filter(Boolean);
+    m = n.match(/^(.+?)와 숨어든 (.+)$/);
+    if (m) return pair(m, false).filter(Boolean);
+    m = n.match(/^(.+?) 뒤에 숨은 (.+)$/);
+    if (m) return pair(m, false).filter(Boolean);
+    m = n.match(/^버려진 (.+)$/);
+    if (m) return [normSilWord(m[1])].filter(Boolean);
+    m = n.match(/^녹슨 (.+)$/);
+    if (m) return [normSilWord(m[1])].filter(Boolean);
+    m = n.match(/^우주에서 떨어진 (.+)$/);
+    if (m) return [normSilWord(m[1])].filter(Boolean);
+    return null;
+  }
+
+  /** 자연스러운 한국어 문장형 (예: 포자가 된 피라냐) */
+  function generateCatchName() {
+    const cf = cores('fish');
+    const cc = cores('creature');
+    const ca = cores('artifact');
+    const cr = cores('crystal');
+    const cd = cores('debris');
+    const pf = pres('fish');
+    const pc = pres('creature');
+    const pa = pres('artifact');
+    const pr = pres('crystal');
+    const pd = pres('debris');
+    const sf = posts('fish');
+    const sr = posts('crystal');
+    const allLiving = cf.concat(cc);
+    const allPre = pf.concat(pc, pa, pr, pd);
+    const artCryDeb = ca.concat(cr, cd);
+
+    const builders = [
+      () => {
+        const a = pick(cc);
+        const b = pickDistinct(cf, a);
+        return `${a}가 된 ${b}`;
+      },
+      () => {
+        const a = pick(cf);
+        const b = pickDistinct(cc, a);
+        return `${a}가 된 ${b}`;
+      },
+      () => `${pick(allPre)}의 ${pick(allLiving)}`,
+      () => {
+        const mod = pick(pc.concat(pf));
+        const b = pick(artCryDeb);
+        return `${mod}형 ${b}`;
+      },
+      () => `${pick(cc)} 같은 ${pick(cf)}`,
+      () => `${pick(pa.concat(pd, pr))}에서 온 ${pick(allLiving)}`,
+      () => `${pick(ca)}에 붙은 ${pick(allLiving)}`,
+      () => `${pick(cr)} 속의 ${pick(allLiving)}`,
+      () => `${pick(ca)}에 갇힌 ${pick(allLiving)}`,
+      () => `${pick(cf)}와 숨어든 ${pick(cd)}`,
+      () => `${pick(cf)} 뒤에 숨은 ${pick(ca)}`,
+      () => `조각난 ${pick(ca)}의 일부`,
+      () => `버려진 ${pick(ca.concat(cd))}`,
+      () => `녹슨 ${pick(cd)}`,
+      () => `우주에서 떨어진 ${pick(ca.concat(cd))}`,
+      () => {
+        const pre = pick(pf);
+        const c = pickDistinct(cf, pre);
+        const po = sf.length ? pick(sf) : '';
+        return po ? `${pre} ${c} ${po}` : `${pre} ${c}`;
+      },
+      () => {
+        const pre = pick(pr);
+        const c = pickDistinct(cr, pre);
+        const po = sr.length ? pick(sr) : '';
+        return po ? `${pre} ${c} ${po}` : `${pre} ${c}`;
+      },
+      () => `${pick(pd)} ${pick(cd)}`,
+      () => `${pick(pc)} ${pick(cc)}`,
+    ];
+
+    let name = '';
+    for (let guard = 0; guard < 16; guard += 1) {
+      name = pick(builders)();
+      if (name && name.length <= 42) break;
+    }
+    return name || '미상 유체';
+  }
+
+  /** 배경용: 물고기·해양 크리처 단어만 (우주 잔해·유물 접두는 제외) */
+  function generateBackgroundMarineName() {
+    const cf = cores('fish');
+    const ccAll = cores('creature');
+    const marineCreature = ccAll.filter((w) =>
+      ['플랑크톤', '포식자', '돌고래', '해파리', '기생체'].indexOf(w) >= 0,
+    );
+    const cc = marineCreature.length ? marineCreature : ccAll;
+    const pf = pres('fish');
+    const pc = pres('creature');
+    const sf = posts('fish');
+    const pre = pf.concat(pc);
+    const living = cf.concat(cc);
+
+    const whaleLike = ['돌고래', '범고래'];
+
+    const builders = [
+      () => {
+        const a = pick(cc);
+        const b = pickDistinct(cf, a);
+        return `${a}가 된 ${b}`;
+      },
+      () => {
+        const a = pick(cf);
+        const b = pickDistinct(cc, a);
+        return `${a}가 된 ${b}`;
+      },
+      () => `${pick(whaleLike)}가 된 ${pick(cf)}`,
+      () => `${pick(whaleLike)} 같은 ${pick(cf)}`,
+      () => `${pick(pre)}의 ${pick(living)}`,
+      () => `${pick(cc)} 같은 ${pick(cf)}`,
+      () => `${pick(pf.concat(pc))}에서 온 ${pick(living)}`,
+      () => {
+        const mod = pick(pc.concat(pf));
+        const b = pick(cf);
+        return `${mod}형 ${b}`;
+      },
+      () => {
+        const pre1 = pick(pf);
+        const c = pickDistinct(cf, pre1);
+        const po = sf.length ? pick(sf) : '';
+        return po ? `${pre1} ${c} ${po}`.trim() : `${pre1} ${c}`;
+      },
+    ];
+
+    let name = '';
+    for (let guard = 0; guard < 16; guard += 1) {
+      name = pick(builders)();
+      if (name && name.length <= 42) break;
+    }
+    return name || `${pick(pf)} ${pick(cf)}`;
+  }
+
+  /** 키워드·기호만 반영 (길이 보정은 prestigeFromName에서) */
+  function intrinsicPrestigeFromName(name) {
     let s = 0;
     let leg = 0;
     for (let i = 0; i < NAME_PRESTIGE_LEGEND.length; i += 1) {
@@ -95,13 +321,46 @@
     if (name.includes('(공명)')) s += 10;
     if (name.includes('-7세대')) s += 8;
 
-    const len = [...name].length;
-    if (len >= 14) s += 13;
-    else if (len >= 10) s += 8;
-    else if (len >= 7) s += 4;
-    else if (len <= 3) s -= 10;
+    return s;
+  }
 
-    if ((name.match(/ /g) || []).length >= 2) s += 5;
+  /**
+   * 0~100: 짧은데 시그널이 강하면 ↑, 긴데 멋진 단어 밀도가 낮으면 ↓
+   */
+  function prestigeFromName(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return 0;
+
+    let s = intrinsicPrestigeFromName(trimmed);
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    const w = words.length;
+    const c = [...trimmed].length;
+    const perWord = s / Math.max(1, w);
+
+    if (w <= 2 && s >= 22) {
+      s += 18;
+    } else if (w === 3 && perWord >= 10) {
+      s += 14;
+    } else if (w <= 4 && perWord >= 12) {
+      s += 10;
+    } else if (w <= 4 && perWord >= 8) {
+      s += 5;
+    }
+
+    if (w >= 5 && perWord < 6) {
+      s -= Math.min(38, (w - 4) * 9 + (perWord < 3.5 ? 14 : 0));
+    }
+    if (w >= 6 && s < 28) {
+      s -= Math.min(22, (w - 5) * 6);
+    }
+
+    if (c >= 22 && perWord < 5.5) {
+      s -= Math.min(20, Math.floor((c - 18) / 3) * 4);
+    }
+
+    if (w <= 2 && s < 10) {
+      s -= 6;
+    }
 
     return Math.max(0, Math.min(100, s));
   }
@@ -109,7 +368,7 @@
   /** prestige + 약간의 랜덤으로 최종 희귀도 */
   function rarityFromName(name) {
     const p = prestigeFromName(name);
-    const noise = (Math.random() - 0.5) * 20;
+    const noise = (Math.random() - 0.5) * 16;
     const t = Math.max(0, Math.min(100, p + noise)) / 100;
 
     const wCommon = Math.max(3, 76 * (1 - t * 0.9));
@@ -147,7 +406,7 @@
     const [lo, hi] = sizeRangeForRarity(rarity);
     const mid = (lo + hi) / 2;
     const sizeBoost = Math.pow(Math.max(0.35, size / mid), 0.5);
-    const typeMul = { fish: 1.05, creature: 1.0, artifact: 1.08, crystal: 1.12, debris: 0.92 }[type] || 1;
+    const typeMul = 1;
     const jitter = 0.88 + Math.random() * 0.26;
     const raw = base * sizeBoost * typeMul * jitter;
     const rounded = Math.round(raw);
@@ -155,12 +414,29 @@
   }
 
   /* ── 픽셀 스프라이트 (DB JSON + 화면 표시) ───────────── */
-  const PIXEL_PALETTES = {
-    common:    ['#0d1b2a', '#415a77', '#778da9', '#e0e1dd', '#1b263b', '#a8dadc'],
-    rare:      ['#1a0a2e', '#5a189a', '#9d4edd', '#c77dff', '#e0aaff', '#10002b'],
-    epic:      ['#1a0505', '#6a040f', '#9d0208', '#d00000', '#ffba08', '#370617'],
-    legendary: ['#1a1200', '#b8860b', '#ffd700', '#fff4b8', '#8b6914', '#ffec8b'],
-  };
+  /** 빈 칸 — 페이지 배경과 동일(#08081a)이라 밝은 테두리·박스가 안 보임 */
+  const PIXEL_MAT = '#08081a';
+  /** 인벤·이모지 샘플링 그리드 */
+  const PIXEL_GRID_W = 32;
+  const PIXEL_GRID_H = 32;
+
+  function pixelPaintColor(hex, cidx) {
+    if (cidx === 0) return PIXEL_MAT;
+    if (!hex || typeof hex !== 'string') return PIXEL_MAT;
+    const h = hex.trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(h)) return PIXEL_MAT;
+    const r = parseInt(h.slice(1, 3), 16) / 255;
+    const g = parseInt(h.slice(3, 5), 16) / 255;
+    const b = parseInt(h.slice(5, 7), 16) / 255;
+    const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const cap = cidx === 0 ? 0.4 : cidx >= 5 ? 0.82 : 0.58;
+    if (L <= cap) return h.toLowerCase();
+    const f = cap / L;
+    const rr = Math.min(255, Math.round(r * f * 255));
+    const gg = Math.min(255, Math.round(g * f * 255));
+    const bb = Math.min(255, Math.round(b * f * 255));
+    return `#${rr.toString(16).padStart(2, '0')}${gg.toString(16).padStart(2, '0')}${bb.toString(16).padStart(2, '0')}`;
+  }
 
   function hashCatchSeed(item) {
     const s = `${item.name}\0${item.size}\0${item.rarity}\0${item.type}`;
@@ -172,125 +448,225 @@
     return h >>> 0;
   }
 
-  /** 이름·타입·크기 시드로 실루엣이 갈리는 픽셀 (이모지 없음) */
-  function generateCatchPixelArt(item) {
-    const w = 14;
-    const h = 10;
-    const palette = PIXEL_PALETTES[item.rarity] || PIXEL_PALETTES.common;
-    const type = item.type || 'fish';
-    let state = hashCatchSeed(item);
-    function rnd() {
-      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-      return state / 0xffffffff;
+  /** 픽셀: 같은 이름이면 동일 이모지·동일 샘플링 */
+  function hashPixelArtSeed(item) {
+    const s = `${String(item.name || '')}\0fish`;
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i += 1) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
     }
+    return h >>> 0;
+  }
 
-    const debrisRects = [];
-    if (type === 'debris') {
-      const n = 3 + Math.floor(rnd() * 4);
-      for (let i = 0; i < n; i += 1) {
-        debrisRects.push({
-          x0: Math.floor(rnd() * 9),
-          y0: Math.floor(rnd() * 7),
-          rw: 2 + Math.floor(rnd() * 5),
-          rh: 1 + Math.floor(rnd() * 4),
-        });
+  /** 이름 키워드 → 이모지 (긴 키워드 우선) */
+  const EMOJI_BY_NAME_KEYWORD = [
+    ['플랑크톤', '🦠'],
+    ['돌고래', '🐬'],
+    ['범고래', '🐋'],
+    ['쭈꾸미', '🐙'],
+    ['오징어', '🦑'],
+    ['문어', '🐙'],
+    ['해파리', '🪼'],
+    ['낙지', '🐙'],
+    ['상어', '🦈'],
+    ['고래', '🐋'],
+    ['물고기', '🐟'],
+    ['물개', '🦭'],
+    ['거북', '🐢'],
+    ['조개', '🦪'],
+    ['새우', '🦐'],
+    ['가재', '🦞'],
+    ['게', '🦀'],
+    ['민물', '🐠'],
+    ['바다', '🌊'],
+    ['수중', '🐟'],
+    ['유체', '🫧'],
+    ['포식자', '🦈'],
+    ['피라냐', '🐠'],
+    ['멸치', '🐟'],
+    ['청어', '🐟'],
+    ['고등어', '🐟'],
+    ['가자미', '🐡'],
+    ['우럭', '🐟'],
+    ['아귀', '🐟'],
+    ['연어', '🐟'],
+    ['참치', '🐟'],
+    ['삼치', '🐟'],
+    ['지느러미', '🐟'],
+    ['성운', '🌌'],
+    ['네뷸라', '🌌'],
+    ['결정', '💎'],
+    ['코어', '🔮'],
+    ['유물', '🏺'],
+    ['잔해', '🛰️'],
+    ['쓰레기', '🗑️'],
+  ];
+
+  const EMOJI_FALLBACK_COSMIC = ['🐠', '🐡', '🦑', '🐙', '🪼', '🐬', '🐋', '🐟', '🦈', '🌊', '✨', '🌀'];
+  const EMOJI_FALLBACK_MARINE = ['🐠', '🐡', '🐟', '🐬', '🐋', '🦈', '🪼', '🐙', '🦑', '🌊', '🦭', '🐳'];
+
+  function pickEmojiForItem(name, seed, marineOnly) {
+    const n = String(name || '');
+    const pool = marineOnly ? EMOJI_FALLBACK_MARINE : EMOJI_FALLBACK_COSMIC;
+    for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
+      const kw = EMOJI_BY_NAME_KEYWORD[i][0];
+      const em = EMOJI_BY_NAME_KEYWORD[i][1];
+      if (n.indexOf(kw) >= 0) return em;
+    }
+    return pool[seed % pool.length];
+  }
+
+  function hexFromRgbByte(r, g, b) {
+    const rr = r & 255;
+    const gg = g & 255;
+    const bb = b & 255;
+    return `#${rr.toString(16).padStart(2, '0')}${gg.toString(16).padStart(2, '0')}${bb.toString(16).padStart(2, '0')}`;
+  }
+
+  /** 3비트 양자화(32단계) — 색 차이를 더 살림 */
+  function quantRgbKey(r, g, b) {
+    const q = (v) => (v >> 3) << 3;
+    return `${q(r)},${q(g)},${q(b)}`;
+  }
+
+  function colorLikeMat(r, g, b, a) {
+    if (a < 30) return true;
+    const dr = r - 8;
+    const dg = g - 8;
+    const db = b - 26;
+    return dr * dr + dg * dg + db * db < 520;
+  }
+
+  function nearestPaletteColorIdx(r, g, b, palette) {
+    let best = 1;
+    let bestD = 1e12;
+    for (let pi = 1; pi < palette.length; pi += 1) {
+      const hex = palette[pi];
+      if (!/^#[0-9a-fA-F]{6}$/.test(hex)) continue;
+      const pr = parseInt(hex.slice(1, 3), 16);
+      const pg = parseInt(hex.slice(3, 5), 16);
+      const pb = parseInt(hex.slice(5, 7), 16);
+      const d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = pi;
       }
     }
+    return best;
+  }
 
-    const fishAx = 0.38 + rnd() * 0.12;
-    const fishBy = 0.32 + rnd() * 0.1;
-    const fishStretch = 0.88 + rnd() * 0.22;
-    const crystalRot = rnd() * Math.PI * 0.35;
-    const cryTh = 0.44 + rnd() * 0.14;
-    const creBlobR = 0.32 + rnd() * 0.1;
-    const creWarpPh = rnd() * 2;
-    const artSlotX = 0.22 + rnd() * 0.18;
-    const artSlotY = rnd() * 0.12;
+  /** 이모지를 고해상도에 그린 뒤 축소 샘플 → cells + palette (transformSeed = 이름 기반 미세 변형) */
+  function rasterizeEmojiToPixelArt(emoji, w, h, transformSeed) {
+    const empty = { w, h, palette: [PIXEL_MAT], cells: new Array(w * h).fill(0), fromEmoji: true };
+    const scaleUp = 4;
+    const hi = document.createElement('canvas');
+    hi.width = w * scaleUp;
+    hi.height = h * scaleUp;
+    const hctx = hi.getContext('2d');
+    if (!hctx) return empty;
 
-    function inDebrisPixel(px, py) {
-      for (let i = 0; i < debrisRects.length; i += 1) {
-        const r = debrisRects[i];
-        if (px >= r.x0 && px < r.x0 + r.rw && py >= r.y0 && py < r.y0 + r.rh) return true;
-      }
-      return false;
-    }
+    const s = (transformSeed != null ? transformSeed >>> 0 : 0x5bd1e995) >>> 0;
+    const mirror = (s & 1) !== 0;
+    const ox = ((s >>> 1) & 7) - 3;
+    const oy = ((s >>> 4) & 7) - 3;
+    const drawScale = 0.92 + ((s >>> 7) & 15) / 100;
+    const hueDeg = ((s >>> 11) & 0x1f) - 15;
+    const rot = ((((s >>> 16) & 7) - 3) * Math.PI) / 180;
+    const sat = 1.06 + ((s >>> 21) & 0xf) / 22;
+    const con = 0.97 + ((s >>> 25) & 7) / 45;
 
-    const cells = [];
-    for (let y = 0; y < h; y += 1) {
-      for (let x = 0; x < w; x += 1) {
-        const nx = ((x + 0.5) / w) * 2 - 1;
-        const ny = ((y + 0.5) / h) * 2 - 1;
-        let filled = false;
-        let accent = false;
-        let eye = false;
-        let shine = false;
+    hctx.fillStyle = PIXEL_MAT;
+    hctx.fillRect(0, 0, hi.width, hi.height);
 
-        if (type === 'fish') {
-          const ex = nx / (fishAx * fishStretch);
-          const ey = ny / fishBy;
-          const body = ex * ex + ey * ey < 1;
-          const tail = nx < -0.26 && nx > -0.92 && Math.abs(ny) < 0.4;
-          const fin = nx > -0.18 && nx < 0.22 && ny < -0.18 && ny > -0.5;
-          filled = body || tail || fin;
-          eye = nx > 0.14 && nx < 0.36 && ny > -0.12 && ny < 0.14;
-          accent = tail && ((x + y) & 1) === 0;
-        } else if (type === 'creature') {
-          const warp = Math.sin(nx * 4.2 + creWarpPh) * 0.11;
-          const wy = ny + warp;
-          const blob = nx * nx * 0.72 + wy * wy * 0.88 < creBlobR;
-          const bump = (nx - 0.22) ** 2 + (ny + 0.22) ** 2 < 0.055;
-          const tendril = nx < -0.15 && Math.abs(ny + nx * 0.4) < 0.2 && nx > -0.75;
-          filled = blob || bump || tendril;
-          eye = nx > 0.08 && nx < 0.26 && Math.abs(ny) < 0.11;
-        } else if (type === 'artifact') {
-          const plate = Math.abs(nx) < 0.52 && Math.abs(ny) < 0.3;
-          const notch = Math.abs(nx - 0.38) < 0.09 && ny > 0.06;
-          const railH = Math.abs(ny - artSlotY) < 0.07 && nx > -0.42 && nx < 0.48;
-          const railV = Math.abs(nx - artSlotX) < 0.06 && Math.abs(ny) < 0.35;
-          const corner = (Math.abs(nx) > 0.35 && Math.abs(ny) > 0.18) && plate && Math.abs(nx) + Math.abs(ny) < 0.72;
-          filled = (plate && !notch) || railH || railV || corner;
-          eye = nx > 0.28 && nx < 0.42 && Math.abs(ny) < 0.07;
-          shine = plate && !notch && nx > 0.15 && ny < -0.05;
-        } else if (type === 'crystal') {
-          const cx = nx * Math.cos(crystalRot) - ny * Math.sin(crystalRot);
-          const cy = nx * Math.sin(crystalRot) + ny * Math.cos(crystalRot);
-          const fac = Math.abs(cx) * 0.52 + Math.abs(cy) * 0.72;
-          filled = fac < cryTh;
-          shine = fac > cryTh * 0.68 && fac < cryTh * 0.88 && cx > -0.05;
-          const facet = Math.abs(Math.abs(cx) - Math.abs(cy)) < 0.08 && filled;
-          accent = facet;
-        } else {
-          filled = inDebrisPixel(x, y);
-          accent = filled && (x + y) % 3 === 0;
+    const cx = hi.width / 2;
+    const cy = hi.height / 2;
+    const fontPx = Math.max(10, Math.floor(hi.height * 0.72));
+
+    hctx.save();
+    hctx.translate(cx + ox, cy + oy);
+    hctx.rotate(rot);
+    hctx.scale(mirror ? -drawScale : drawScale, drawScale);
+    const filt = [];
+    if (hueDeg !== 0) filt.push(`hue-rotate(${hueDeg}deg)`);
+    filt.push(`saturate(${sat.toFixed(3)})`);
+    filt.push(`contrast(${con.toFixed(3)})`);
+    hctx.filter = filt.join(' ');
+    hctx.font = `${fontPx}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
+    hctx.textAlign = 'center';
+    hctx.textBaseline = 'middle';
+    hctx.fillText(emoji, 0, 0);
+    hctx.restore();
+
+    const lo = document.createElement('canvas');
+    lo.width = w;
+    lo.height = h;
+    const lctx = lo.getContext('2d');
+    if (!lctx) return empty;
+    lctx.imageSmoothingEnabled = false;
+    lctx.drawImage(hi, 0, 0, w, h);
+
+    const data = lctx.getImageData(0, 0, w, h).data;
+    const palette = [PIXEL_MAT];
+    const keyToIdx = new Map();
+    keyToIdx.set(PIXEL_MAT, 0);
+    const maxPaletteEntries = 36;
+    const cells = new Array(w * h);
+
+    for (let py = 0; py < h; py += 1) {
+      for (let px = 0; px < w; px += 1) {
+        const di = (py * w + px) * 4;
+        const r = data[di];
+        const g = data[di + 1];
+        const b = data[di + 2];
+        const a = data[di + 3];
+        if (colorLikeMat(r, g, b, a)) {
+          cells[py * w + px] = 0;
+          continue;
         }
-
-        let idx;
-        if (eye) {
-          idx = Math.min(5, palette.length - 1);
-        } else if (shine) {
-          idx = Math.min(palette.length - 1, 3 + Math.floor(rnd() * 2));
-        } else if (filled) {
-          if (accent) {
-            idx = 2 + Math.floor(rnd() * 2);
+        const k = quantRgbKey(r, g, b);
+        let cidx = keyToIdx.get(k);
+        if (cidx == null) {
+          if (palette.length < maxPaletteEntries) {
+            const parts = k.split(',').map((x) => parseInt(x, 10));
+            const hex = hexFromRgbByte(parts[0], parts[1], parts[2]);
+            cidx = palette.length;
+            palette.push(hex);
+            keyToIdx.set(k, cidx);
           } else {
-            const strip = Math.floor((x + y * 2 + rnd() * 2) % 3);
-            idx = 1 + strip;
-            if (rnd() > 0.82) idx = Math.min(palette.length - 2, idx + 1);
+            cidx = nearestPaletteColorIdx(r, g, b, palette);
+            keyToIdx.set(k, cidx);
           }
-        } else {
-          idx = 0;
         }
-        cells.push(idx);
+        cells[py * w + px] = cidx;
       }
     }
-    return { w, h, palette, cells };
+
+    return { w, h, palette, cells, fromEmoji: true };
+  }
+
+  function generateMarineFloaterPixelArt(item) {
+    const w = PIXEL_GRID_W;
+    const h = PIXEL_GRID_H;
+    const base = hashPixelArtSeed(item);
+    const pickSeed = base ^ 0x9e3779b9;
+    const emoji = pickEmojiForItem(item.name, pickSeed, true);
+    return rasterizeEmojiToPixelArt(emoji, w, h, base);
+  }
+
+  function generateCatchPixelArt(item) {
+    const w = PIXEL_GRID_W;
+    const h = PIXEL_GRID_H;
+    const base = hashPixelArtSeed(item);
+    const emoji = pickEmojiForItem(item.name, base, false);
+    return rasterizeEmojiToPixelArt(emoji, w, h, base);
   }
 
   /** 보관함 등에서 픽셀 재생성용 최소 필드 */
   function itemStubForArt(row) {
     return {
       name: row.name,
-      type: row.type || 'fish',
+      type: row.type || UNIFIED_TYPE,
       size: row.size != null ? row.size : 20,
       rarity: row.rarity || 'common',
     };
@@ -304,16 +680,20 @@
     canvas.className = 'pixel-art-canvas';
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    ctx.fillStyle = PIXEL_MAT;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < art.cells.length; i += 1) {
       const cidx = art.cells[i];
       const px = i % art.w;
       const py = Math.floor(i / art.w);
-      ctx.fillStyle = art.palette[cidx] || '#000';
+      const raw = cidx === 0 ? PIXEL_MAT : (art.palette[cidx] || PIXEL_MAT);
+      ctx.fillStyle = art.fromEmoji ? raw.toLowerCase() : pixelPaintColor(raw, cidx);
       ctx.fillRect(px, py, 1, 1);
     }
-    const scale = 4;
+    const scale = 2;
     canvas.style.width = `${cssW != null ? cssW : art.w * scale}px`;
     canvas.style.height = `${cssH != null ? cssH : art.h * scale}px`;
+    canvas.style.imageRendering = 'pixelated';
     hostEl.innerHTML = '';
     hostEl.appendChild(canvas);
   }
@@ -447,7 +827,7 @@
             inventory.push({
               id: c.id,
               name: c.itemName,
-              type: c.itemType || 'fish',
+              type: c.itemType || UNIFIED_TYPE,
               size: c.size != null ? c.size : 20,
               rarity: c.rarity,
               coins: c.coinValue,
@@ -460,34 +840,116 @@
       .catch(() => {});
   }
 
-  /* ── 별 배경 ─────────────────────────────────────────── */
-  (function initStars() {
+  /* ── 별 + 이름 기반 픽셀 오브젝트(배경, 선명하게) ──────── */
+  (function initStarsAndPixelFloaters() {
     const canvas = document.getElementById('stars');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     let stars = [];
+    let pixelFloaters = [];
+
+    function wrapCoord(v, max) {
+      const pad = 80;
+      if (v < -pad) return v + max + pad * 2;
+      if (v > max + pad) return v - max - pad * 2;
+      return v;
+    }
+
+    function rasterizePixelArtForBg(art, scale) {
+      const c = document.createElement('canvas');
+      c.width = art.w * scale;
+      c.height = art.h * scale;
+      const cctx = c.getContext('2d');
+      if (!cctx) return c;
+      // 투명 배경: 전체를 매트로 채우면 플로터끼리 겹칠 때 네모난 덮개가 보임
+      for (let i = 0; i < art.cells.length; i += 1) {
+        const cidx = art.cells[i];
+        if (cidx === 0) continue;
+        const px = i % art.w;
+        const py = (i / art.w) | 0;
+        const raw = art.palette[cidx] || PIXEL_MAT;
+        cctx.fillStyle = art.fromEmoji ? raw.toLowerCase() : pixelPaintColor(raw, cidx);
+        cctx.fillRect(px * scale, py * scale, scale, scale);
+      }
+      return c;
+    }
+
+    /** index 짝수: 해양, 홀수: 우주·잔해 등 일반 이름 */
+    function makePixelFloater(index) {
+      const marine = (index & 1) === 0;
+      const name = marine ? generateBackgroundMarineName() : generateCatchName();
+      const rarity = rarityFromName(name);
+      const size = rollSize(rarity);
+      const item = { name, type: UNIFIED_TYPE, rarity, size };
+      const art = marine ? generateMarineFloaterPixelArt(item) : generateCatchPixelArt(item);
+      const scale = 2 + (Math.random() < 0.28 ? 1 : 0);
+      const bmp = rasterizePixelArtForBg(art, scale);
+      const speed = reducedMotion ? 0 : 0.05 + Math.random() * 0.38;
+      const ang = Math.random() * Math.PI * 2;
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.55),
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.003 - 0.0015),
+        bmp,
+        alpha: 0.72 + Math.random() * 0.2,
+        halfW: bmp.width / 2,
+        halfH: bmp.height / 2,
+      };
+    }
 
     function resize() {
-      canvas.width  = window.innerWidth;
+      canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      stars = Array.from({ length: 140 }, () => ({
+      stars = Array.from({ length: 88 }, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         r: Math.random() * 1.4 + 0.3,
         a: Math.random(),
         da: (Math.random() * 0.004 + 0.001) * (Math.random() < 0.5 ? 1 : -1),
+        vx: reducedMotion ? 0 : (Math.random() * 0.06 + 0.008) * (Math.random() < 0.5 ? -1 : 1),
+        vy: reducedMotion ? 0 : (Math.random() * 0.05 + 0.006) * (Math.random() < 0.5 ? -1 : 1),
       }));
+      const area = canvas.width * canvas.height;
+      const n = Math.min(34, Math.max(14, Math.floor(area / 26000)));
+      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i));
+    }
+
+    function drawPixelFloater(f) {
+      ctx.save();
+      ctx.globalAlpha = f.alpha;
+      ctx.translate(Math.round(f.x), Math.round(f.y));
+      ctx.rotate(f.rot);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(f.bmp, -f.halfW, -f.halfH);
+      ctx.restore();
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      stars.forEach(s => {
+      stars.forEach((s) => {
         s.a += s.da;
         if (s.a > 1 || s.a < 0) s.da *= -1;
+        s.x = wrapCoord(s.x + s.vx, canvas.width);
+        s.y = wrapCoord(s.y + s.vy, canvas.height);
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${s.a.toFixed(2)})`;
+        ctx.fillStyle = `rgba(255,255,255,${s.a.toFixed(3)})`;
         ctx.fill();
+      });
+      pixelFloaters.forEach((f) => {
+        f.x = wrapCoord(f.x + f.vx, canvas.width);
+        f.y = wrapCoord(f.y + f.vy, canvas.height);
+        f.rot += f.rotSpeed;
+        drawPixelFloater(f);
       });
       requestAnimationFrame(draw);
     }
@@ -498,13 +960,33 @@
   })();
 
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
+
+  /** 이름 없이 희귀도만 랜덤으로 결정 (미니게임 시작 전에 사용)
+   *  common 90% / rare 7% / epic 2.5% / legendary 0.5%
+   */
+  function rollRarity() {
+    const wC = 180, wR = 14, wE = 5, wL = 1; // 합계 200
+    let r = Math.random() * (wC + wR + wE + wL);
+    if ((r -= wC) <= 0) return 'common';
+    if ((r -= wR) <= 0) return 'rare';
+    if ((r -= wE) <= 0) return 'epic';
+    return 'legendary';
+  }
+
+  /** 희귀도가 정해진 후 크기·코인·절차적 이름까지 완성 (AI 폴백용) */
+  function rollItemFromRarity(rarity) {
+    const name = generateCatchName();
+    const size = rollSize(rarity);
+    const coins = computeCoinValue(rarity, size, UNIFIED_TYPE);
+    return { name, type: UNIFIED_TYPE, rarity, size, coins };
+  }
+
   function rollItem() {
-    const type = pick(CATCH_TYPES);
-    const name = generateCatchName(type);
+    const name = generateCatchName();
     const rarity = rarityFromName(name);
     const size = rollSize(rarity);
-    const coins = computeCoinValue(rarity, size, type);
-    return { name, type, rarity, size, coins };
+    const coins = computeCoinValue(rarity, size, UNIFIED_TYPE);
+    return { name, type: UNIFIED_TYPE, rarity, size, coins };
   }
 
   /* ── 보관함 ──────────────────────────────────────────── */
@@ -558,7 +1040,7 @@
           item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
             ? item.pixelArt
             : generateCatchPixelArt(itemStubForArt(item));
-        mountPixelArt(thumb, art, 40, 28);
+        mountPixelArt(thumb, art, 56, 56);
       }
       inventoryList.appendChild(el);
     });
@@ -654,7 +1136,8 @@
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
-      currentItem = rollItem();
+      // 미니게임에는 희귀도만 필요 — 이름은 잡은 후 AI가 생성
+      currentItem = { rarity: rollRarity() };
       goMinigame();
     }, wait);
   }
@@ -667,7 +1150,7 @@
     startMinigame(currentItem);
   }
 
-  function goResult(success) {
+  async function goResult(success) {
     if (mini.rafId) cancelAnimationFrame(mini.rafId);
     minigame.classList.add('hidden');
     lureEl.classList.remove('biting');
@@ -682,6 +1165,45 @@
     }
 
     state = 'RESULT';
+    const rarity = currentItem.rarity;
+
+    // ── AI로 생명체 생성 (로그인 + rare 이상일 때만, common은 절차적) ──
+    let aiData = null;
+    if (isLoggedIn && alpToken && platformApi && rarity !== 'common') {
+      showStatus('🔍 생명체 분석 중...');
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 5000); // 5초 타임아웃
+        const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${alpToken}`,
+          },
+          body: JSON.stringify({ rarity }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (aiRes.ok) {
+          aiData = await aiRes.json();
+        }
+      } catch {
+        // 타임아웃 or 네트워크 오류 → 절차적 폴백
+      }
+    }
+
+    // ── 아이템 완성 (AI 성공 or 절차적 폴백) ──
+    let item;
+    if (aiData?.name) {
+      const type = aiData.type || UNIFIED_TYPE;
+      const size = rollSize(rarity);
+      const coins = computeCoinValue(rarity, size, type);
+      item = { name: aiData.name, type, rarity, size, coins, emoji: aiData.emoji || '' };
+    } else {
+      item = rollItemFromRarity(rarity);
+    }
+    currentItem = item;
+
     showResult(currentItem);
     saveCatch(currentItem);
 
@@ -777,7 +1299,7 @@
     resultCard.className = `result-card rarity-${item.rarity}`;
     const art = generateCatchPixelArt(item);
     if (resultSpriteHost) {
-      mountPixelArt(resultSpriteHost, art, 56, 40);
+      mountPixelArt(resultSpriteHost, art, 128, 128);
     }
     resultRarity.className  = `result-rarity rarity-${item.rarity}`;
     resultRarity.textContent = RARITY_LABEL[item.rarity];
@@ -805,7 +1327,7 @@
           },
           body: JSON.stringify({
             itemName:  item.name,
-            itemEmoji: '',
+            itemEmoji: item.emoji || '',
             itemType:  item.type,
             rarity:    item.rarity,
             size:      item.size,
