@@ -14,14 +14,30 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
 html, body {
   height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: "Gowun Dodum", system-ui, sans-serif;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 미니게임 중: 모바일 풀 스크롤·바운스로 터치가 끊기는 것 방지 */
+html.minigame-active,
+html.minigame-active body {
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
@@ -31,7 +47,10 @@ html, body {
   z-index: 10;
   max-width: 480px; margin: 0 auto;
   padding: 0.75rem 1rem 1.25rem;
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   min-height: 100svh;
+  min-height: 100dvh;
   display: flex; flex-direction: column; gap: 0.75rem;
 }
 
@@ -111,8 +130,21 @@ html, body {
 }
 
 /* Minigame */
-.minigame { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.minigame-hint { font-size: 0.78rem; color: var(--text-dim); }
+.minigame {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  touch-action: none;
+}
+.minigame-hint {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 0 0.35rem;
+  line-height: 1.35;
+}
 .minigame-wrap { display: flex; align-items: stretch; gap: 0.75rem; height: 160px; }
 
 .minigame-track {
@@ -337,6 +369,10 @@ html, body {
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.42);
   pointer-events: auto;
 }
+/* 미니게임 중에는 터치가 패널에 먹혀 게임 입력이 안 되는 것 방지 */
+.inventory-dock.minigame-paused {
+  pointer-events: none;
+}
 .inventory-dock .inv-header {
   margin-bottom: 0;
   flex-shrink: 0;
@@ -384,6 +420,42 @@ html, body {
 .log-item-time  { font-size: 0.7rem; color: var(--text-dim); }
 
 .hidden { display: none !important; }
+
+/* 좁은 화면: 보관함 발자국 축소 + 주요 버튼·미니게임 영역 확보 */
+@media (max-width: 520px) {
+  .log-panel.inventory-dock {
+    width: min(158px, calc(100vw - 0.75rem - env(safe-area-inset-left)));
+    max-height: min(32vh, 220px);
+    padding: 0.4rem 0.45rem 0.5rem;
+  }
+  .inventory-dock .inv-scroll-wrap {
+    max-height: min(26vh, 168px);
+  }
+  .inventory-dock .inv-item {
+    gap: 0.28rem;
+  }
+  .cast-btn {
+    font-size: 1rem;
+    padding: 0.65rem 1.35rem;
+    max-width: calc(100vw - 2rem);
+  }
+  .minigame-wrap {
+    height: 148px;
+    gap: 0.55rem;
+  }
+  .result-card {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    max-width: calc(100vw - 1rem);
+    padding: 0.7rem 0.75rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+  }
+  .result-preview {
+    min-width: unset;
+    margin: 0 auto;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .lure.biting, .result-card, .result-card.rarity-legendary { animation: none !important; }

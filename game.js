@@ -836,6 +836,25 @@
   const inventoryList       = document.getElementById('inventoryList');
   const inventoryScrollWrap = document.getElementById('inventoryScrollWrap');
   const sellAllBtn          = document.getElementById('sellAllBtn');
+  const inventoryDock       = document.getElementById('inventoryDock');
+
+  /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 보관함이 터치 가로채기 방지 */
+  let minigameScrollLocked = false;
+  function minigameTouchMoveBlock(e) {
+    e.preventDefault();
+  }
+  function setMinigameScrollLocked(on) {
+    const next = Boolean(on);
+    if (next === minigameScrollLocked) return;
+    minigameScrollLocked = next;
+    document.documentElement.classList.toggle('minigame-active', next);
+    if (inventoryDock) inventoryDock.classList.toggle('minigame-paused', next);
+    if (next) {
+      document.addEventListener('touchmove', minigameTouchMoveBlock, { passive: false });
+    } else {
+      document.removeEventListener('touchmove', minigameTouchMoveBlock, { passive: false });
+    }
+  }
 
   /* ── 플랫폼 연동 ─────────────────────────────────────── */
   const urlParams   = new URLSearchParams(window.location.search);
@@ -1200,6 +1219,7 @@
   /* ── 상태 전환 ───────────────────────────────────────── */
   function goIdle() {
     state = 'IDLE';
+    setMinigameScrollLocked(false);
     castBtn.classList.remove('hidden');
     statusMsg.classList.add('hidden');
     minigame.classList.add('hidden');
@@ -1243,6 +1263,8 @@
 
   async function goResult(success) {
     if (mini.rafId) cancelAnimationFrame(mini.rafId);
+    mini.rafId = null;
+    setMinigameScrollLocked(false);
     minigame.classList.add('hidden');
     lureEl.classList.remove('biting');
     beamLine.classList.remove('extended');
@@ -1341,6 +1363,7 @@
     renderMinigame();
 
     if (mini.rafId) cancelAnimationFrame(mini.rafId);
+    setMinigameScrollLocked(true);
     mini.rafId = requestAnimationFrame(miniLoop);
   }
 
@@ -1402,6 +1425,9 @@
   document.addEventListener('pointercancel', onRelease);
   document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); onPress(); } });
   document.addEventListener('keyup',   e => { if (e.code === 'Space') onRelease(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) onRelease();
+  });
 
   /* ── 픽셀아트 서버 전송용 정제 (palette ≤ 24, cells 정수 배열) ── */
   function serializePixelArt(art) {

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>우주 낚시</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -40,7 +40,7 @@
 
       <!-- 미니게임 (낚시 바) -->
       <div class="minigame hidden" id="minigame">
-        <p class="minigame-hint">누르고 있으면 막대가 올라가요!</p>
+        <p class="minigame-hint">누르고 있으면 막대가 올라가요! (모바일: 화면 아무 곳이나 길게 누르기)</p>
         <div class="minigame-wrap">
           <div class="minigame-track" id="minigameTrack">
             <div class="target-zone" id="targetZone"></div>
@@ -58,7 +58,7 @@
   </div>
 
   <!-- 보관함: 뷰포트 고정, 메인 게임 플로우·레이아웃과 분리 -->
-  <section class="log-panel inventory-dock" aria-label="보관함">
+  <section class="log-panel inventory-dock" id="inventoryDock" aria-label="보관함">
     <div class="inv-header">
       <h2 class="log-title">📦 보관함</h2>
       <button class="sell-all-btn hidden" id="sellAllBtn" type="button"></button>
