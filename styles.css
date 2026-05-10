@@ -421,8 +421,54 @@ html.minigame-active body {
 
 .hidden { display: none !important; }
 
+/* 긴 이름/숫자가 모바일에서 박스를 뚫고 나가지 않도록 기본 보호 */
+.result-body,
+.inv-name {
+  min-width: 0;
+}
+.result-name,
+.result-size,
+.result-rarity,
+.inv-name,
+.inv-coins {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.result-coins {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* 좁은 화면: 보관함 발자국 축소 + 주요 버튼·미니게임 영역 확보 */
 @media (max-width: 520px) {
+  .app {
+    max-width: 390px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    gap: 0.6rem;
+  }
+  .hud {
+    gap: 0.35rem;
+  }
+  .hud-block {
+    border-radius: 10px;
+    padding: 0.45rem 0.42rem;
+  }
+  .hud-label {
+    font-size: 0.62rem;
+  }
+  .hud-value {
+    font-size: 1.08rem;
+  }
+  .astronaut {
+    font-size: 2.2rem;
+  }
+  .lure {
+    font-size: 1.05rem;
+  }
+  .status-msg {
+    font-size: 0.9rem;
+  }
   .log-panel.inventory-dock {
     width: min(158px, calc(100vw - 0.75rem - env(safe-area-inset-left)));
     max-height: min(32vh, 220px);
@@ -435,25 +481,72 @@ html.minigame-active body {
     gap: 0.28rem;
   }
   .cast-btn {
-    font-size: 1rem;
-    padding: 0.65rem 1.35rem;
+    font-size: 0.95rem;
+    padding: 0.58rem 1.08rem;
     max-width: calc(100vw - 2rem);
+  }
+  .minigame-hint {
+    font-size: 0.72rem;
   }
   .minigame-wrap {
     height: 148px;
     gap: 0.55rem;
+  }
+  .minigame-track {
+    width: 40px;
   }
   .result-card {
     flex-direction: column;
     align-items: stretch;
     text-align: center;
     max-width: calc(100vw - 1rem);
-    padding: 0.7rem 0.75rem;
+    padding: 0.62rem 0.65rem;
     bottom: max(0.65rem, env(safe-area-inset-bottom));
+    gap: 0.45rem;
+  }
+  .result-rarity,
+  .result-added {
+    font-size: 0.62rem;
+  }
+  .result-name {
+    font-size: 0.92rem;
+    line-height: 1.22;
+  }
+  .result-size {
+    font-size: 0.68rem;
+  }
+  .result-coins {
+    font-size: 0.92rem;
   }
   .result-preview {
     min-width: unset;
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .app {
+    padding-left: 0.62rem;
+    padding-right: 0.62rem;
+  }
+  .hud-value {
+    font-size: 1rem;
+  }
+  .cast-btn {
+    font-size: 0.9rem;
+    padding: 0.52rem 0.9rem;
+  }
+  .log-panel.inventory-dock {
+    width: min(144px, calc(100vw - 0.62rem - env(safe-area-inset-left)));
+    max-height: min(28vh, 188px);
+  }
+  .inventory-dock .inv-thumb {
+    width: 2.45rem;
+    height: 2.45rem;
+  }
+  .inventory-dock .inv-item {
+    font-size: 0.68rem;
+    padding: 0.16rem 0.24rem;
   }
 }
 
