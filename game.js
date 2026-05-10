@@ -471,7 +471,8 @@
   }
 
   /**
-   * 이름 키워드 → 이모지 (긴 키워드가 배열 앞쪽).
+   * 이름 키워드 → 이모지.
+   * pickEmojiForItem 은 이름 안에서 가장 늦게 끝나는 매칭(동률이면 더 긴 키워드)을 쓴다.
    * 값이 배열이면 이름·시드로 그중 하나를 골라 같은 키워드도 다양하게 보이게 함.
    */
   const EMOJI_BY_NAME_KEYWORD = [
@@ -494,7 +495,7 @@
     ['포자', ['🍄', '🦠', '🌫️']],
     ['유기체', ['🧬', '🦠', '🐾']],
     ['위성조각', ['🛰️', '💥', '🪨']],
-    ['컨테이너', ['📦', '🗃️', '📫']],
+    ['컨테이너', ['📦', '🗃️', '🛢️']],
     ['엔진', ['⚙️', '🔧', '🚀']],
     ['패널', ['🔲', '📟', '💠']],
     ['드론', ['🛸', '📡', '🤖']],
@@ -542,7 +543,7 @@
     ['유체', ['🫧', '💧', '🌊']],
     ['포식자', ['🦈', '🐙', '🦑']],
     ['피라냐', ['🐠', '🦈', '🐡']],
-    ['멸치', ['🐟', '🐠', '🫧']],
+    ['멸치', ['🐟', '🐠', '🎣']],
     ['청어', ['🐟', '🐠', '🥫']],
     ['고등어', ['🐟', '🐠', '🐡']],
     ['가자미', ['🐡', '🐟', '🐠']],
@@ -648,11 +649,29 @@
   function pickEmojiForItem(name, seed, marineOnly) {
     const n = String(name || '');
     const pool = marineOnly ? EMOJI_FALLBACK_MARINE : EMOJI_FALLBACK_COSMIC;
+    let bestEntry = null;
+    let bestEnd = -1;
+    let bestKwLen = -1;
+    let bestI = Infinity;
     for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
       const entry = EMOJI_BY_NAME_KEYWORD[i];
       const kw = entry[0];
-      if (n.indexOf(kw) >= 0) return pickFromKeywordEmoji(entry, n, seed);
+      const pos = n.lastIndexOf(kw);
+      if (pos < 0) continue;
+      const end = pos + kw.length;
+      const kwLen = kw.length;
+      if (
+        end > bestEnd ||
+        (end === bestEnd && kwLen > bestKwLen) ||
+        (end === bestEnd && kwLen === bestKwLen && i < bestI)
+      ) {
+        bestEnd = end;
+        bestKwLen = kwLen;
+        bestI = i;
+        bestEntry = entry;
+      }
     }
+    if (bestEntry) return pickFromKeywordEmoji(bestEntry, n, seed);
     const h = mixSeedForEmoji(n, seed);
     const h2 = mixSeedForEmoji(n + '\0fb', ~seed >>> 0);
     const idx = (h ^ h2) % pool.length;
@@ -1735,7 +1754,7 @@
 
   /* ── 결과 표시 ───────────────────────────────────────── */
   async function showResult(item) {
-    resultCard.className = `result-card rarity-${item.rarity}`;
+    resultCard.className = `result-card hidden rarity-${item.rarity}`;
     if (!item.pixelArt) {
       item.pixelArt = await generateCatchPixelArt(item);
     }
@@ -1830,15 +1849,24 @@
     sellAllBtn.addEventListener('click', sellAll);
   }
 
-  /* 보관함: 내용이 영역보다 길면 세로 드래그로 스크롤 */
+  /* 보관함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 (미니게임 옆 패널은 세로) */
   (function setupInventoryDragScroll() {
     const wrap = inventoryScrollWrap;
     if (!wrap) return;
 
+    function inventoryDragIsHorizontal() {
+      return (
+        inventoryDock &&
+        inventoryDock.classList.contains('inventory-dock--portrait-strip') &&
+        !inventoryDock.classList.contains('inventory-dock--beside-minigame')
+      );
+    }
+
     let dragging = false;
-    let startY = 0;
+    let startMain = 0;
     let startScroll = 0;
     let ptrId = null;
+    let dragHorizontal = false;
 
     wrap.addEventListener(
       'pointerdown',
@@ -1848,8 +1876,9 @@
         if (e.button !== 0) return;
         if (e.target.closest('button, input, a, [role="button"]')) return;
         dragging = true;
-        startY = e.clientY;
-        startScroll = wrap.scrollTop;
+        dragHorizontal = inventoryDragIsHorizontal();
+        startMain = dragHorizontal ? e.clientX : e.clientY;
+        startScroll = dragHorizontal ? wrap.scrollLeft : wrap.scrollTop;
         ptrId = e.pointerId;
         wrap.classList.add('is-dragging');
         try {
@@ -1865,7 +1894,11 @@
       'pointermove',
       (e) => {
         if (!dragging || e.pointerId !== ptrId) return;
-        wrap.scrollTop = startScroll - (e.clientY - startY);
+        if (dragHorizontal) {
+          wrap.scrollLeft = startScroll - (e.clientX - startMain);
+        } else {
+          wrap.scrollTop = startScroll - (e.clientY - startMain);
+        }
       },
       { passive: true }
     );

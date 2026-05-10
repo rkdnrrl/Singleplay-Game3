@@ -571,7 +571,6 @@ html.minigame-active body {
   min-height: 6.75rem;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
   padding: 0.16rem 0.28rem 0.28rem;
 }
 .inventory-dock.inventory-dock--portrait-strip .inv-scroll-wrap::-webkit-scrollbar {
@@ -611,7 +610,6 @@ html.minigame-active body {
   text-align: center;
   gap: 0.14rem;
   padding: 0.28rem 0.34rem 0.32rem;
-  scroll-snap-align: start;
 }
 .inventory-dock.inventory-dock--portrait-strip .inv-thumb {
   width: 2.45rem;
