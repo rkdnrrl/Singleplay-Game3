@@ -893,14 +893,16 @@ USB허브
   /** 미니게임 난이도 (등급 구분 없음) */
   const MINI_CONFIG = {
     common: {
-      zoneRatio: 0.42,
-      speed: 48,
-      erratic: false,
-      erraticChance: 0,
-      barRatio: 0.23,
-      gainMul: 1.22,
-      lossMul: 0.78,
-      overlapNeed: 0.28,
+      zoneRatio: 0.33,
+      speed: 60,
+      erratic: true,
+      erraticChance: 0.012,
+      barRatio: 0.2,
+      gainMul: 0.92,
+      lossMul: 1.12,
+      overlapNeed: 0.4,
+      gravityDown: 315,
+      gravityUp: -292,
     },
   };
 
@@ -2010,7 +2012,9 @@ USB허브
       mini.targetVY = cfg.speed * (Math.random() * 2 - 1);
     }
 
-    const gravity = mini.pressing ? -320 : 280;
+    const gDown = cfg.gravityDown != null ? cfg.gravityDown : 280;
+    const gUp = cfg.gravityUp != null ? cfg.gravityUp : -320;
+    const gravity = mini.pressing ? gUp : gDown;
     mini.barY = Math.max(0, Math.min(mini.trackH - mini.barH, mini.barY + gravity * dt));
 
     const barTop = mini.barY, barBot = mini.barY + mini.barH;
