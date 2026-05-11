@@ -734,8 +734,8 @@ html.minigame-active body {
   box-shadow: 0 2px 12px rgba(255, 213, 79, 0.35);
 }
 
-/* 3D 복셀 뷰어 (적재함 픽셀) */
-.voxel-viewer-overlay {
+/* 적재함: 픽셀 확대 보기 */
+.inv-pixel-preview-overlay {
   position: fixed;
   inset: 0;
   z-index: 56;
@@ -747,7 +747,7 @@ html.minigame-active body {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(5px);
 }
-.voxel-viewer-box {
+.inv-pixel-preview-box {
   width: 100%;
   max-width: 28rem;
   background: var(--surface);
@@ -759,7 +759,7 @@ html.minigame-active body {
   flex-direction: column;
   gap: 0.4rem;
 }
-.voxel-viewer-title {
+.inv-pixel-preview-title {
   font-family: "Jua", sans-serif;
   font-size: 0.98rem;
   color: #e0f7fa;
@@ -768,28 +768,33 @@ html.minigame-active body {
   line-height: 1.3;
   word-break: keep-all;
 }
-.voxel-viewer-hint {
+.inv-pixel-preview-hint {
   font-family: "Gowun Dodum", sans-serif;
   font-size: 0.72rem;
   color: var(--text-dim);
   margin: 0;
   text-align: center;
 }
-.voxel-viewer-canvas-host {
+.inv-pixel-preview-host {
   width: 100%;
-  min-height: 220px;
-  height: min(42vh, 340px);
+  min-height: 200px;
+  max-height: min(72vh, 520px);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: auto;
   background: #08081a;
-  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem;
+  box-sizing: border-box;
 }
-.voxel-viewer-canvas-host canvas {
+.inv-pixel-preview-host .pixel-art-canvas {
   display: block;
-  width: 100% !important;
-  height: 100% !important;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
-.voxel-viewer-close {
+.inv-pixel-preview-close {
   align-self: center;
   margin-top: 0.2rem;
   font-family: "Jua", sans-serif;
@@ -803,7 +808,7 @@ html.minigame-active body {
   border: 1px solid var(--border);
   touch-action: manipulation;
 }
-.voxel-viewer-close:active {
+.inv-pixel-preview-close:active {
   transform: scale(0.97);
 }
 

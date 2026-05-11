@@ -1119,29 +1119,6 @@ USB허브
     mountPixelArt(host, art, 80, 80);
   }
 
-  /** 3D 복셀용 표시 색 (2D 캔버스와 동일 규칙) */
-  function voxelDisplayHexForCell(art, cidx) {
-    if (cidx === 0) return null;
-    const raw = art.palette[cidx] || PIXEL_MAT;
-    const s = art.fromEmoji ? String(raw).toLowerCase() : pixelPaintColor(raw, cidx);
-    if (typeof s === 'string' && /^#[0-9a-fA-F]{6}$/.test(s)) return s;
-    return '#6a6a8a';
-  }
-
-  function countSolidVoxels(art) {
-    if (!art || !art.cells) return 0;
-    let n = 0;
-    for (let i = 0; i < art.cells.length; i += 1) {
-      if (art.cells[i] !== 0) n += 1;
-    }
-    return n;
-  }
-
-  /** 3D 보기: 각 픽셀을 Y축으로 몇 겹 쌓을지(두께) */
-  const VOXEL_EXTRUDE_LAYERS = 4;
-  const VOXEL_LAYER_HEIGHT = 0.86;
-  const VOXEL_PLAN = 0.9;
-
   /** 미니게임 난이도 (등급 구분 없음) */
   const MINI_CONFIG = {
     common: {
@@ -1190,14 +1167,13 @@ USB허브
   const sellConfirmCancel   = document.getElementById('sellConfirmCancel');
   const sellConfirmOk       = document.getElementById('sellConfirmOk');
   const inventoryDock       = document.getElementById('inventoryDock');
-  const voxelViewerOverlay  = document.getElementById('voxelViewerOverlay');
-  const voxelViewerCanvasHost = document.getElementById('voxelViewerCanvasHost');
-  const voxelViewerTitle    = document.getElementById('voxelViewerTitle');
-  const voxelViewerClose    = document.getElementById('voxelViewerClose');
+  const invPixelPreviewOverlay = document.getElementById('invPixelPreviewOverlay');
+  const invPixelPreviewHost = document.getElementById('invPixelPreviewHost');
+  const invPixelPreviewTitle = document.getElementById('invPixelPreviewTitle');
+  const invPixelPreviewClose = document.getElementById('invPixelPreviewClose');
 
   let sellConfirmPayload = null;
-  let voxelViewerCtx = null;
-  /** 마우스: 드래그 스크롤 후 뜨는 click 으로 3D가 중복 열리지 않게 */
+  /** 마우스: 드래그 스크롤 후 뜨는 click 으로 확대 보기가 중복 열리지 않게 */
   let suppressNextInvListClick = false;
 
   /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 적재함이 터치 가로채기 방지 */
@@ -1830,173 +1806,38 @@ USB허브
     sellConfirmOverlay.classList.remove('hidden');
   }
 
-  function closeVoxelViewer() {
-    if (voxelViewerOverlay) voxelViewerOverlay.classList.add('hidden');
-    if (voxelViewerCtx) {
-      cancelAnimationFrame(voxelViewerCtx.rafId);
-      window.removeEventListener('resize', voxelViewerCtx.onResize);
-      try {
-        voxelViewerCtx.controls.dispose();
-      } catch {
-        /* ignore */
-      }
-      voxelViewerCtx.scene.remove(voxelViewerCtx.mesh);
-      voxelViewerCtx.mesh.geometry.dispose();
-      voxelViewerCtx.mesh.material.dispose();
-      voxelViewerCtx.renderer.dispose();
-      const cEl = voxelViewerCtx.renderer.domElement;
-      if (cEl && cEl.parentNode) cEl.parentNode.removeChild(cEl);
-      if (voxelViewerCanvasHost) voxelViewerCanvasHost.innerHTML = '';
-      voxelViewerCtx = null;
-    }
+  function closeInvPixelPreview() {
+    if (invPixelPreviewOverlay) invPixelPreviewOverlay.classList.add('hidden');
+    if (invPixelPreviewHost) invPixelPreviewHost.innerHTML = '';
   }
 
-  function initVoxelViewerScene(THREE, OrbitControls, art) {
-    const host = voxelViewerCanvasHost;
-    if (!host) return;
-    host.innerHTML = '';
-    const rw = Math.max(1, host.clientWidth || 320);
-    const rh = Math.max(1, host.clientHeight || 280);
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x08081a);
-
-    const camera = new THREE.PerspectiveCamera(48, rw / rh, 0.1, 4000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(rw, rh);
-    if (renderer.outputColorSpace !== undefined) {
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-    }
-    if (renderer.toneMappingExposure !== undefined) {
-      renderer.toneMappingExposure = 1.22;
-    }
-    host.appendChild(renderer.domElement);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.52));
-    scene.add(new THREE.HemisphereLight(0xd6e4ff, 0x6a7088, 1.15));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.82);
-    dir.position.set(5, 9, 7);
-    scene.add(dir);
-    const fill = new THREE.DirectionalLight(0xe8f0ff, 0.38);
-    fill.position.set(-6, 4, -5);
-    scene.add(fill);
-
-    const layers = Math.max(1, Math.min(8, VOXEL_EXTRUDE_LAYERS));
-    const layerH = VOXEL_LAYER_HEIGHT;
-    const plan = VOXEL_PLAN;
-    const solid = countSolidVoxels(art);
-    const count = solid * layers;
-    const geometry = new THREE.BoxGeometry(plan, layerH * 0.96, plan);
-    const material = new THREE.MeshLambertMaterial();
-    const mesh = new THREE.InstancedMesh(geometry, material, count);
-    const dummy = new THREE.Object3D();
-    const tmpColor = new THREE.Color();
-    let ii = 0;
-    for (let py = 0; py < art.h; py += 1) {
-      for (let px = 0; px < art.w; px += 1) {
-        const cidx = art.cells[py * art.w + px];
-        if (cidx === 0) continue;
-        const baseHex = voxelDisplayHexForCell(art, cidx);
-        for (let ly = 0; ly < layers; ly += 1) {
-          dummy.position.set(
-            px - art.w / 2 + 0.5,
-            -(ly + 0.5) * layerH,
-            py - art.h / 2 + 0.5
-          );
-          dummy.updateMatrix();
-          mesh.setMatrixAt(ii, dummy.matrix);
-          tmpColor.set(baseHex);
-          if (ly > 0) tmpColor.multiplyScalar(1 - ly * 0.035);
-          mesh.setColorAt(ii, tmpColor);
-          ii += 1;
-        }
-      }
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    scene.add(mesh);
-
-    const yExtent = layers * layerH;
-    const midY = -yExtent / 2;
-    const maxDim = Math.max(art.w, art.h, yExtent, 1);
-    const dist = maxDim * 1.35;
-    camera.position.set(dist * 0.72, midY + dist * 0.58, dist * 0.88);
-    camera.lookAt(0, midY, 0);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.target.set(0, midY, 0);
-    controls.update();
-
-    function onResize() {
-      if (!voxelViewerCtx) return;
-      const nw = Math.max(1, host.clientWidth);
-      const nh = Math.max(1, host.clientHeight);
-      voxelViewerCtx.camera.aspect = nw / nh;
-      voxelViewerCtx.camera.updateProjectionMatrix();
-      voxelViewerCtx.renderer.setSize(nw, nh);
-    }
-    window.addEventListener('resize', onResize);
-
-    voxelViewerCtx = {
-      scene,
-      camera,
-      renderer,
-      controls,
-      mesh,
-      host,
-      onResize,
-      rafId: 0,
-    };
-
-    function loop() {
-      if (!voxelViewerCtx) return;
-      voxelViewerCtx.rafId = requestAnimationFrame(loop);
-      voxelViewerCtx.controls.update();
-      voxelViewerCtx.renderer.render(voxelViewerCtx.scene, voxelViewerCtx.camera);
-    }
-    loop();
-  }
-
-  async function openInventoryVoxelFromItem(item) {
-    if (!voxelViewerOverlay || !voxelViewerCanvasHost || !voxelViewerTitle) return;
-    const V = window.__VOXEL__;
-    if (!V || !V.THREE || !V.OrbitControls) {
-      showStatus('3D 보기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-      setTimeout(() => {
-        if (statusMsg) statusMsg.classList.add('hidden');
-      }, 3200);
-      return;
-    }
+  async function openInventoryPixelPreviewFromItem(item) {
+    if (!invPixelPreviewOverlay || !invPixelPreviewHost || !invPixelPreviewTitle) return;
     let art =
       item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
         ? item.pixelArt
         : null;
     if (!art) art = await generateCatchPixelArt(itemStubForArt(item));
     if (!art || !art.cells || !art.cells.length) return;
-    if (countSolidVoxels(art) === 0) {
+    let solid = 0;
+    for (let i = 0; i < art.cells.length; i += 1) {
+      if (art.cells[i] !== 0) solid += 1;
+    }
+    if (solid === 0) {
       showStatus('표시할 픽셀이 없어요.');
       setTimeout(() => {
         if (statusMsg) statusMsg.classList.add('hidden');
       }, 2200);
       return;
     }
-    voxelViewerTitle.textContent = item.name || '3D 보기';
-    closeVoxelViewer();
-    voxelViewerOverlay.classList.remove('hidden');
-    requestAnimationFrame(() => {
-      try {
-        initVoxelViewerScene(V.THREE, V.OrbitControls, art);
-      } catch {
-        closeVoxelViewer();
-        showStatus('3D 표시 중 오류가 났어요.');
-        setTimeout(() => {
-          if (statusMsg) statusMsg.classList.add('hidden');
-        }, 3200);
-      }
-    });
+    invPixelPreviewTitle.textContent = item.name || '보기';
+    invPixelPreviewHost.innerHTML = '';
+    const maxCss = Math.min(window.innerWidth * 0.88, window.innerHeight * 0.68, 520);
+    const aw = Math.max(1, art.w | 0);
+    const ah = Math.max(1, art.h | 0);
+    const scale = Math.max(2, Math.min(16, Math.floor(maxCss / Math.max(aw, ah))));
+    mountPixelArt(invPixelPreviewHost, art, aw * scale, ah * scale);
+    invPixelPreviewOverlay.classList.remove('hidden');
   }
 
   async function sellItem(catchId) {
@@ -2426,7 +2267,7 @@ USB허브
     if (state === 'IDLE') goCasting();
   });
 
-  // 적재함: 팔기 버튼 / 그 외 영역 클릭 → 3D 복셀 보기
+  // 적재함: 팔기 버튼 / 그 외 영역 클릭 → 픽셀 확대 보기
   if (inventoryList) {
     inventoryList.addEventListener('click', e => {
       if (suppressNextInvListClick) {
@@ -2444,7 +2285,7 @@ USB허브
       const row = e.target.closest('.inv-item');
       if (!row || row.dataset.invIdx == null) return;
       const item = inventory[Number(row.dataset.invIdx)];
-      if (item) void openInventoryVoxelFromItem(item);
+      if (item) void openInventoryPixelPreviewFromItem(item);
     });
   }
 
@@ -2484,20 +2325,20 @@ USB허브
   }
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (voxelViewerOverlay && !voxelViewerOverlay.classList.contains('hidden')) {
-      closeVoxelViewer();
+    if (invPixelPreviewOverlay && !invPixelPreviewOverlay.classList.contains('hidden')) {
+      closeInvPixelPreview();
       return;
     }
     if (!sellConfirmOverlay || sellConfirmOverlay.classList.contains('hidden')) return;
     closeSellConfirm();
   });
 
-  if (voxelViewerClose) {
-    voxelViewerClose.addEventListener('click', closeVoxelViewer);
+  if (invPixelPreviewClose) {
+    invPixelPreviewClose.addEventListener('click', closeInvPixelPreview);
   }
-  if (voxelViewerOverlay) {
-    voxelViewerOverlay.addEventListener('click', (e) => {
-      if (e.target === voxelViewerOverlay) closeVoxelViewer();
+  if (invPixelPreviewOverlay) {
+    invPixelPreviewOverlay.addEventListener('click', (e) => {
+      if (e.target === invPixelPreviewOverlay) closeInvPixelPreview();
     });
   }
 
@@ -2524,13 +2365,13 @@ USB허브
     let dragHorizontal = false;
     let pendingInvRow = null;
 
-    function cleanupPointerSession(openVoxelOnTap) {
+    function cleanupPointerSession(openPreviewOnTap) {
       if (ptrId === null) return;
-      if (openVoxelOnTap) {
+      if (openPreviewOnTap) {
         if (!dragCommitted && pendingInvRow && pendingInvRow.dataset.invIdx != null) {
           suppressNextInvListClick = true;
           const item = inventory[Number(pendingInvRow.dataset.invIdx)];
-          if (item) void openInventoryVoxelFromItem(item);
+          if (item) void openInventoryPixelPreviewFromItem(item);
         } else if (dragCommitted) {
           suppressNextInvListClick = true;
         }
