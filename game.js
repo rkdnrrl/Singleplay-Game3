@@ -1162,7 +1162,7 @@ USB허브
 
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
 
-  /** 절차적 이름·크기·코인 (등급은 항상 일반) */
+  /** 절차적 이름·크기·코인 — 희귀(rare) 티어 없음, 등급은 항상 일반(common) */
   function rollProceduralCatchItem() {
     const name = generateCatchName();
     const size = rollSize();
@@ -1170,7 +1170,7 @@ USB허브
     return { name, type: UNIFIED_TYPE, rarity: 'common', size, coins };
   }
 
-  /** 로그인 시 /api/ai/image (PixelLab 완료까지 대기, 서버 shared_pixel_arts 캐시) */
+  /** 로그인 시 /api/ai/image — rarity 는 common 만 (희귀 등급 API 사용 안 함) */
   async function enrichCatchItemWithAi(item) {
     if (!isLoggedIn || !alpToken || !platformApi) return item;
     const headers = {
