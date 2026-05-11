@@ -26,8 +26,8 @@
   // 로컬에서 index.html을 file:// 로 열면 `/assets/...` 는 깨지므로 상대 경로 권장.
   window.__PLAYER_SPRITE_URL__ = 'assets/player/player.png';
   //
-  // 애니메이션 — `idle/0.png`, `idle/1.png` … (시작 번호는 `__PLAYER_IDLE_FRAME_START__`, 기본 0)
-  // action 은 `action/1.png` … `8.png` (기본 시작 1, `__PLAYER_ACTION_FRAME_START__` 로 변경 가능).
+  // 애니메이션 — `idle/1.png`, `idle/2.png` … (기본 시작 1, `__PLAYER_IDLE_FRAME_START__` 로 0 등 변경 가능)
+  // action 도 `action/1.png` … (기본 시작 1, `__PLAYER_ACTION_FRAME_START__`)
   // idle 폴더가 비어 있고 action 만 있으면 대기 화면은 코드 기본 캐릭터, 미니게임 누를 때만 action 루프.
   // 수동 목록이 필요하면 아래 배열이 폴더 스캔보다 우선.
   // window.__PLAYER_ANIM_MS__ = 220;
@@ -36,6 +36,6 @@
   // window.__PLAYER_DISABLE_FOLDER_SCAN__ = true;
   // window.__PLAYER_FOLDER_MAX_FRAMES__ = 48;
   // window.__PLAYER_FOLDER_FRAME_GAP_ABORT__ = 3;
-  // window.__PLAYER_IDLE_FRAMES__ = ['assets/player/idle/0.png', 'assets/player/idle/1.png'];
-  // window.__PLAYER_ACTION_FRAMES__ = ['assets/player/action/0.png', 'assets/player/action/1.png'];
+  // window.__PLAYER_IDLE_FRAMES__ = ['assets/player/idle/1.png', 'assets/player/idle/2.png'];
+  // window.__PLAYER_ACTION_FRAMES__ = ['assets/player/action/1.png', 'assets/player/action/2.png'];
 })();

@@ -878,7 +878,7 @@ USB허브
   }
 
   /**
-   * 폴더에 `{startIndex}.png` … 순으로 읽어 루프 (idle 기본 startIndex=0 → 0.png…, action 기본 1 → 1.png…).
+   * 폴더에 `{startIndex}.png` … 순으로 읽어 루프 (idle·action 폴더 기본 startIndex=1 → 1.png…, `__PLAYER_*_FRAME_START__` 로 변경).
    * 연속 maxGap번 실패하면 중단.
    */
   async function discoverPixelArtFramesInDir(dirBase, opts) {
@@ -916,8 +916,8 @@ USB허브
   }
 
   /**
-   * 우선순위: `__PLAYER_IDLE_FRAMES__` 배열 → (폴더) `__PLAYER_IDLE_DIR__` 기본 0.png부터.
-   * 액션: `__PLAYER_ACTION_FRAMES__` → (폴더) `__PLAYER_ACTION_DIR__` 기본 1.png부터 (`__PLAYER_ACTION_FRAME_START__` 로 덮어쓰기).
+   * 우선순위: `__PLAYER_IDLE_FRAMES__` 배열 → (폴더) `__PLAYER_IDLE_DIR__` 기본 1.png부터 (`__PLAYER_IDLE_FRAME_START__`).
+   * 액션: `__PLAYER_ACTION_FRAMES__` → (폴더) `__PLAYER_ACTION_DIR__` 기본 1.png부터 (`__PLAYER_ACTION_FRAME_START__`).
    * idle 폴더가 비어 있고 action만 있으면 대기는 코드 기본 픽셀 1장.
    * 폴더 스캔 끄기: `__PLAYER_DISABLE_FOLDER_SCAN__ = true`
    * 없으면 단일 `__PLAYER_SPRITE_URL__` 또는 기본 픽셀.
@@ -955,7 +955,7 @@ USB허브
 
     const idleStartRaw = Number(window.__PLAYER_IDLE_FRAME_START__);
     const idleStart =
-      Number.isFinite(idleStartRaw) && idleStartRaw >= 0 ? Math.floor(idleStartRaw) : 0;
+      Number.isFinite(idleStartRaw) && idleStartRaw >= 0 ? Math.floor(idleStartRaw) : 1;
     const actionStartRaw = Number(window.__PLAYER_ACTION_FRAME_START__);
     const actionStart =
       Number.isFinite(actionStartRaw) && actionStartRaw >= 0
