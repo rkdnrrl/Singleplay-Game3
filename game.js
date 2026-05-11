@@ -471,6 +471,46 @@
   }
 
   /**
+   * 유니코드 물고기 글리프(🐟🐠🐡)만으로는 겹침이 크므로, 낚시·바다·회·이과 등으로 후보를 넓힘.
+   * 키워드마다 시드가 달라 물고기 종류별로 다른 조합이 나옴.
+   */
+  const FISH_KIND_DIVERSITY_POOL = [
+    '🐟', '🐠', '🐡', '🎏', '🎣', '🍣', '🫧', '🌊', '🪸', '🐚', '🥫', '⚓', '🏝️', '🎐',
+  ];
+
+  function fishEmojiPalette(keyword, mustInclude) {
+    const raw = mustInclude == null ? [] : Array.isArray(mustInclude) ? mustInclude : [mustInclude];
+    const out = [];
+    const seen = new Set();
+    for (let i = 0; i < raw.length; i += 1) {
+      const e = raw[i];
+      if (e && !seen.has(e)) {
+        seen.add(e);
+        out.push(e);
+      }
+    }
+    let h = 2166136261;
+    const s = String(keyword);
+    for (let i = 0; i < s.length; i += 1) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    let salt = h >>> 0;
+    let guard = 0;
+    while (out.length < 9 && guard < 96) {
+      guard += 1;
+      const idx = salt % FISH_KIND_DIVERSITY_POOL.length;
+      salt = Math.imul(salt + idx + 1, 0x9e3779b1) >>> 0;
+      const e = FISH_KIND_DIVERSITY_POOL[idx];
+      if (!seen.has(e)) {
+        seen.add(e);
+        out.push(e);
+      }
+    }
+    return out;
+  }
+
+  /**
    * 이름 키워드 → 이모지.
    * pickEmojiForItem 은 이름 안에서 가장 늦게 끝나는 매칭(동률이면 더 긴 키워드)을 쓴다.
    * 값이 배열이면 이름·시드로 그중 하나를 골라 같은 키워드도 다양하게 보이게 함.
@@ -501,6 +541,7 @@
     ['드론', ['🛸', '📡', '🤖']],
     ['프리즘', ['🔮', '💎', '🌈']],
     ['클러스터', ['✨', '💎', '🌟']],
+    ['양자', ['⚛️', '✨', '🔮']],
     ['샤드', ['💎', '🧩', '🔷']],
     ['프로토타입', ['⚗️', '🔧', '🧪']],
     ['인공물', ['🤖', '🏭', '⚙️']],
@@ -528,31 +569,51 @@
     ['문어', '🐙'],
     ['해파리', '🪼'],
     ['낙지', '🐙'],
+    ['병어', fishEmojiPalette('병어', ['🐠'])],
+    ['전갱이', fishEmojiPalette('전갱이', ['🐟'])],
+    ['전어', fishEmojiPalette('전어', ['🐟'])],
+    ['임연수어', fishEmojiPalette('임연수어', ['🐟'])],
+    ['붕어', fishEmojiPalette('붕어', ['🐠', '🐟'])],
+    ['잉어', fishEmojiPalette('잉어', ['🐟', '🐠'])],
+    ['메기', fishEmojiPalette('메기', ['🐟', '🐠', '🔱'])],
+    ['장어', fishEmojiPalette('장어', ['🐍', '🐟'])],
+    ['민어', fishEmojiPalette('민어', ['🐟'])],
+    ['복어', fishEmojiPalette('복어', ['🐡'])],
+    ['도미', fishEmojiPalette('도미', ['🐠', '🐟'])],
+    ['참돔', fishEmojiPalette('참돔', ['🐠'])],
+    ['대구', fishEmojiPalette('대구', ['🐟', '🧊'])],
+    ['명태', fishEmojiPalette('명태', ['🐟', '🥶'])],
+    ['조기', fishEmojiPalette('조기', ['🐟', '🌅'])],
+    ['방어', fishEmojiPalette('방어', ['🐟', '🛡️', '🐠'])],
+    ['삼치', fishEmojiPalette('삼치', ['🐟', '🗡️'])],
+    ['가오리', fishEmojiPalette('가오리', ['🐡', '🌊'])],
+    ['해마', fishEmojiPalette('해마', ['🐠', '🔱'])],
     ['상어', '🦈'],
-    ['고래', ['🐋', '🐳']],
-    ['물고기', ['🐟', '🐠', '🐡']],
+    ['황새치', fishEmojiPalette('황새치', ['🐟', '🗡️'])],
+    ['벨루가', fishEmojiPalette('벨루가', ['🐋', '🤍'])],
+    ['고래', fishEmojiPalette('고래', ['🐋', '🐳'])],
+    ['물고기', fishEmojiPalette('물고기', ['🐟', '🐠', '🐡'])],
     ['물개', '🦭'],
     ['거북', '🐢'],
     ['조개', '🦪'],
     ['새우', '🦐'],
     ['가재', '🦞'],
     ['게', '🦀'],
-    ['민물', ['🐠', '🐟', '🫧']],
+    ['민물', fishEmojiPalette('민물', ['🐠', '🐟', '🏞️'])],
     ['바다', ['🌊', '🏖️', '🐚']],
-    ['수중', ['🐟', '🫧', '🌊']],
-    ['유체', ['🫧', '💧', '🌊']],
-    ['포식자', ['🦈', '🐙', '🦑']],
-    ['피라냐', ['🐠', '🦈', '🐡']],
-    ['멸치', ['🐟', '🐠', '🎣']],
-    ['청어', ['🐟', '🐠', '🥫']],
-    ['고등어', ['🐟', '🐠', '🐡']],
-    ['가자미', ['🐡', '🐟', '🐠']],
-    ['우럭', ['🐟', '🐠', '🎣']],
-    ['아귀', ['🐟', '🐡', '😈']],
-    ['연어', ['🐟', '🐠', '🧡']],
-    ['참치', ['🐟', '🐠', '🍣']],
-    ['삼치', ['🐟', '🦈', '🐠']],
-    ['지느러미', ['🐟', '🐠', '🐡']],
+    ['수중', fishEmojiPalette('수중', ['🐟', '🫧', '🌊'])],
+    ['유체', fishEmojiPalette('유체', ['🫧', '💧', '🌊'])],
+    ['포식자', fishEmojiPalette('포식자', ['🦈', '🐙', '🦑'])],
+    ['피라냐', '🐠'],
+    ['멸치', fishEmojiPalette('멸치', ['🐟', '🐠', '🎣'])],
+    ['청어', fishEmojiPalette('청어', ['🐟', '🐠', '🥫'])],
+    ['고등어', fishEmojiPalette('고등어', ['🐟', '🐠', '🐡'])],
+    ['가자미', fishEmojiPalette('가자미', ['🐡', '🐟', '🐠'])],
+    ['우럭', fishEmojiPalette('우럭', ['🐟', '🐠', '🎣'])],
+    ['아귀', fishEmojiPalette('아귀', ['🐟', '🐡', '😈'])],
+    ['연어', fishEmojiPalette('연어', ['🐟', '🐠', '🧡'])],
+    ['참치', fishEmojiPalette('참치', ['🐟', '🐠', '🍣'])],
+    ['지느러미', fishEmojiPalette('지느러미', ['🐟', '🐠', '🐡'])],
     ['성운', ['🌌', '✨', '🌠']],
     ['네뷸라', ['🌌', '🌠', '✨']],
     ['결정', ['💎', '🔷', '✨']],
@@ -593,6 +654,12 @@
     ['와 숨어든', ['➕', '🔗', '✨']],
   ];
 
+  /**
+   * 이름 끝쪽 키워드(예: 돌고래)가 이기면 안 되는 본체 — `피라냐가 된 돌고래` 등.
+   * 배열 앞이 더 우선(둘 다 있으면 앞 키워드).
+   */
+  const EMOJI_OVERRIDE_IF_PRESENT = ['피라냐'];
+
   /** `emoji-pool.js` 미로드·용량 부족 시에만 사용 (약 130개) */
   const EMOJI_FALLBACK_COSMIC_LEGACY = [
     '🐠', '🐡', '🦑', '🐙', '🪼', '🐬', '🐋', '🐳', '🐟', '🦈', '🌊', '✨', '🌀', '🌌', '🌠',
@@ -609,9 +676,9 @@
   const EMOJI_FALLBACK_MARINE_LEGACY = [
     '🐠', '🐡', '🐟', '🐬', '🐋', '🐳', '🦈', '🪼', '🐙', '🦑', '🌊', '🦭', '🐚', '🪸', '🦐',
     '🦞', '🦀', '🦪', '🐢', '🫧', '🏖️', '🎣', '🔱', '🌴', '🐊', '🦦', '🌅', '🌙', '⭐', '✨',
-    '🐧', '🦆', '🪿', '🐦', '🌧️', '💧', '🧜', '⚓', '🚢', '🛟', '🏄', '🤿', '🐚', '🪸', '🦭',
-    '🌺', '🌻', '🌼', '🌷', '🪷', '🐚', '🦑', '🐙', '🪼', '🦈', '🐋', '🐬', '🐟', '🐠', '🐡',
-    '🏝️', '⛵', '🚤', '🛥️', '🌫️', '🌊', '💦', '🫧', '🧊', '🏊', '🚣', '🎏', '🎐', '🌀', '🌪️',
+    '🐧', '🦆', '🪿', '🐦', '🌧️', '💧', '🧜', '⚓', '🚢', '🛟', '🏄', '🤿', '🍣', '🥫', '🎏',
+    '🌺', '🌻', '🌼', '🌷', '🪷', '🏝️', '🌀', '💦', '🧊', '🏊', '🚣', '🎐', '🌪️', '⛵', '🚤',
+    '🛥️', '🌫️', '🐚', '🪸', '🦈', '🐋', '🐬', '🐟', '🐠', '🐡', '🦑', '🐙', '🪼', '🦭', '🤿',
   ];
 
   const EMOJI_POOL_LARGE =
@@ -649,6 +716,16 @@
   function pickEmojiForItem(name, seed, marineOnly) {
     const n = String(name || '');
     const pool = marineOnly ? EMOJI_FALLBACK_MARINE : EMOJI_FALLBACK_COSMIC;
+    for (let oi = 0; oi < EMOJI_OVERRIDE_IF_PRESENT.length; oi += 1) {
+      const okw = EMOJI_OVERRIDE_IF_PRESENT[oi];
+      if (!okw || n.indexOf(okw) < 0) continue;
+      for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
+        const entry = EMOJI_BY_NAME_KEYWORD[i];
+        if (entry[0] === okw) {
+          return pickFromKeywordEmoji(entry, n, seed);
+        }
+      }
+    }
     let bestEntry = null;
     let bestEnd = -1;
     let bestKwLen = -1;
@@ -676,6 +753,46 @@
     const h2 = mixSeedForEmoji(n + '\0fb', ~seed >>> 0);
     const idx = (h ^ h2) % pool.length;
     return pool[idx];
+  }
+
+  /**
+   * 사용자 제공 PNG/WebP 등 — 픽셀아트로 샘플링해 이모지와 동일 파이프라인에 태움.
+   * `window.__CATCH_SPRITE_RULES__ = [{ kw: '피라냐', url: 'https://.../x.png' }, ...]`
+   * 매칭 규칙은 pickEmojiForItem 과 같음(이름 안에서 더 오른쪽에서 끝나는 kw 우선).
+   * 다른 도메인 이미지는 서버에서 CORS(Access-Control-Allow-Origin)가 열려 있어야 함.
+   */
+  function pickSpriteUrlForItem(name) {
+    const rules =
+      typeof window !== 'undefined' && Array.isArray(window.__CATCH_SPRITE_RULES__)
+        ? window.__CATCH_SPRITE_RULES__
+        : null;
+    if (!rules || rules.length === 0) return '';
+    const n = String(name || '');
+    let bestUrl = '';
+    let bestEnd = -1;
+    let bestKwLen = -1;
+    let bestI = Infinity;
+    for (let i = 0; i < rules.length; i += 1) {
+      const rule = rules[i];
+      const kw = rule && rule.kw != null ? String(rule.kw) : '';
+      const url = rule && rule.url != null ? String(rule.url).trim() : '';
+      if (!kw || !url) continue;
+      const pos = n.lastIndexOf(kw);
+      if (pos < 0) continue;
+      const end = pos + kw.length;
+      const kwLen = kw.length;
+      if (
+        end > bestEnd ||
+        (end === bestEnd && kwLen > bestKwLen) ||
+        (end === bestEnd && kwLen === bestKwLen && i < bestI)
+      ) {
+        bestEnd = end;
+        bestKwLen = kwLen;
+        bestI = i;
+        bestUrl = url;
+      }
+    }
+    return bestUrl;
   }
 
   function hexFromRgbByte(r, g, b) {
@@ -941,6 +1058,11 @@
     const h = PIXEL_GRID_H;
     const base = hashPixelArtSeed(item);
     const pickSeed = base ^ 0x9e3779b9;
+    const spriteUrl = pickSpriteUrlForItem(item.name);
+    if (spriteUrl) {
+      const fromImg = await rasterizeImageUrlToPixelArt(spriteUrl, w, h);
+      if (fromImg) return fromImg;
+    }
     const emoji = pickEmojiForItem(item.name, pickSeed, true);
     return rasterizeEmojiToPixelArt(emoji, w, h, base);
   }
@@ -949,6 +1071,11 @@
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
     const base = hashPixelArtSeed(item);
+    const spriteUrl = pickSpriteUrlForItem(item.name);
+    if (spriteUrl) {
+      const fromImg = await rasterizeImageUrlToPixelArt(spriteUrl, w, h);
+      if (fromImg) return fromImg;
+    }
     const emoji = pickEmojiForItem(item.name, base, false);
     return rasterizeEmojiToPixelArt(emoji, w, h, base);
   }
