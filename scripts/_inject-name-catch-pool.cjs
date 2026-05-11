@@ -129,10 +129,27 @@ const NAME_CATCH_OBJ_GROUPS = {
   정원: `화분 화분받침 화분받침대 받침대 모종삽 모종이 호미 갈퀨 삽 낫 예초기 잔디깍기 물뿌리개 스프링클러 호스 릴호스 비닐하우스 온실프레임 파라솔 해변의자 캠핑의자 캠핑테이블 쿨러 아이스박스 그릴 숯 가스버너 토치 바비큐집게 집게 불판 그릴망 훈연통 정원등 태양등 센서등 잔디씨 꽃씨 비료 거름 퇴비 흙 상토 배양토 화분흙 분무기 살충제 제초제 잡초제거기`,
 };
 
-const NAME_CATCH_PREFIX = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 전기 무선 접이식 휴대용 대형 소형 미니 업소용 가정용 야외 방수 캠핑 게이밍 사무용 운동용 주방용 욕실용 정원용 차량용 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`
+const NAME_CATCH_PREFIX_GENERAL = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 접이식 휴대용 대형 소형 미니 야외 방수 캠핑 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`
   .trim()
   .split(/\s+/)
   .filter(Boolean);
+
+const NAME_CATCH_PREFIX_TECH = `전기 무선`
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean);
+
+const NAME_CATCH_PREFIX_CONTEXT = {
+  업소용: ['주방', '가구', '욕실', '전자'],
+  가정용: ['주방', '가구', '욕실', '전자'],
+  사무용: ['사무'],
+  운동용: ['스포츠'],
+  주방용: ['주방'],
+  욕실용: ['욕실'],
+  정원용: ['정원'],
+  게이밍: ['가구', '전자'],
+  차량용: ['전자', '가구'],
+};
 
 const NAME_CATCH_TREES = `
 참나무 굴참나무 상수리나무 떡갈나무 신갈나무 졸참나무 느티나무 은행나무 벚나무 왕벚나무 단풍나무 소나무 해송 흑송 잣나무 리기다소나무 가문비나무 편백 향나무 유칼립투스 자작나무 물푸레나무 버드나무 때죽나무 가죽나무 무화과나무 감나무 밤나무 배나무 사과나무 복숭아나무 자두나무 매실나무 살구나무 앵두나무 체리나무 포도나무 키위나무 감귤나무 레몬나무 오렌지나무 귤나무 대추야자 야자수 잎갈나무 전나무 삼나무 육송 목련나무 왕버들 은버들 팽나무 느릅나무 회화나무 당나무 오동나무 배롱나무 주목 편백나무 노송나무 향나무숲 잣나무숲
@@ -155,7 +172,7 @@ const NAME_CATCH_GRASS = `
 function buildInjectionBlock() {
   const lines = [];
   lines.push('  /**');
-  lines.push('   * 줍는 이름 — 손수 고른 시드 + (재질·용도 등 접두)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).');
+  lines.push('   * 줍는 이름 — 시드 + 재질·크기 등 일반 접두×전체 용품 + (전기·무선)×전자류만 + (주방용 등 맥락 접두)×해당 분류만 + 나무·꽃·풀.');
   lines.push('   * `catchNameToFormula`는 이름 안의 금속·합금 토큰만 골라냄.');
   lines.push('   */');
   lines.push('  const NAME_CATCH_SEED = `');
@@ -169,9 +186,20 @@ function buildInjectionBlock() {
   lines.push('  };');
   lines.push('');
   lines.push(
-    '  const NAME_CATCH_PREFIX = `' +
-      NAME_CATCH_PREFIX.join(' ') +
+    '  const NAME_CATCH_PREFIX_GENERAL = `' +
+      NAME_CATCH_PREFIX_GENERAL.join(' ') +
       '`.trim().split(/\\s+/).filter(Boolean);',
+  );
+  lines.push(
+    '  const NAME_CATCH_PREFIX_TECH = `' +
+      NAME_CATCH_PREFIX_TECH.join(' ') +
+      '`.trim().split(/\\s+/).filter(Boolean);',
+  );
+  lines.push(
+    '  /** 맥락 접두는 값으로 적은 분류의 명사에만 붙임 (무선수모·주방용수모 방지). */',
+  );
+  lines.push(
+    '  const NAME_CATCH_PREFIX_CONTEXT = ' + JSON.stringify(NAME_CATCH_PREFIX_CONTEXT) + ';',
   );
   lines.push('  const NAME_CATCH_CORE_OBJ = Object.values(NAME_CATCH_OBJ_GROUPS).flat();');
   lines.push('');
@@ -193,14 +221,36 @@ function buildInjectionBlock() {
   lines.push('      const s = line.trim();');
   lines.push('      if (s && s.length <= 26) set.add(s);');
   lines.push('    });');
-  lines.push('    for (let i = 0; i < NAME_CATCH_PREFIX.length; i += 1) {');
-  lines.push('      const p = NAME_CATCH_PREFIX[i];');
+  lines.push('    for (let i = 0; i < NAME_CATCH_PREFIX_GENERAL.length; i += 1) {');
+  lines.push('      const p = NAME_CATCH_PREFIX_GENERAL[i];');
   lines.push('      for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {');
   lines.push('        const o = NAME_CATCH_CORE_OBJ[j];');
   lines.push('        const n = `${p}${o}`;');
   lines.push('        if (n.length <= 26) set.add(n);');
   lines.push('      }');
   lines.push('    }');
+  lines.push('    const techObjList = NAME_CATCH_OBJ_GROUPS.전자;');
+  lines.push('    for (let i = 0; i < NAME_CATCH_PREFIX_TECH.length; i += 1) {');
+  lines.push('      const p = NAME_CATCH_PREFIX_TECH[i];');
+  lines.push('      for (let j = 0; j < techObjList.length; j += 1) {');
+  lines.push('        const o = techObjList[j];');
+  lines.push('        if (o.startsWith(p)) continue;');
+  lines.push('        const n = `${p}${o}`;');
+  lines.push('        if (n.length <= 26) set.add(n);');
+  lines.push('      }');
+  lines.push('    }');
+  lines.push('    Object.keys(NAME_CATCH_PREFIX_CONTEXT).forEach((p) => {');
+  lines.push('      const gkeys = NAME_CATCH_PREFIX_CONTEXT[p];');
+  lines.push('      for (let g = 0; g < gkeys.length; g += 1) {');
+  lines.push('        const arr = NAME_CATCH_OBJ_GROUPS[gkeys[g]];');
+  lines.push('        if (!arr) continue;');
+  lines.push('        for (let j = 0; j < arr.length; j += 1) {');
+  lines.push('          const o = arr[j];');
+  lines.push('          const n = `${p}${o}`;');
+  lines.push('          if (n.length <= 26) set.add(n);');
+  lines.push('        }');
+  lines.push('      }');
+  lines.push('    });');
   lines.push('    NAME_CATCH_TREES.forEach((t) => { if (t.length <= 26) set.add(t); });');
   lines.push('    NAME_CATCH_FLOWERS.forEach((t) => { if (t.length <= 26) set.add(t); });');
   lines.push('    NAME_CATCH_GRASS.forEach((t) => { if (t.length <= 26) set.add(t); });');
@@ -214,7 +264,7 @@ function buildInjectionBlock() {
 }
 
 let game = fs.readFileSync(gamePath, 'utf8');
-const start = game.indexOf('  /**\n   * 줍는 이름 전용 — 실제 물건');
+const start = game.indexOf('  /**\n   * 줍는 이름 — 시드');
 const end = game.indexOf('  /** 이름 토큰 → 픽셀 실루엣 종류');
 if (start < 0 || end < 0) {
   console.error('markers not found', { start, end });

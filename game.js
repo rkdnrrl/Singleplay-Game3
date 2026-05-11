@@ -186,7 +186,7 @@
   }
 
   /**
-   * 줍는 이름 — 손수 고른 시드 + (재질·용도 등 접두)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).
+   * 줍는 이름 — 시드 + 재질·크기 등 일반 접두×전체 용품 + (전기·무선)×전자류만 + (주방용 등 맥락 접두)×해당 분류만 + 나무·꽃·풀.
    * `catchNameToFormula`는 이름 안의 금속·합금 토큰만 골라냄.
    */
   const NAME_CATCH_SEED = `
@@ -312,7 +312,20 @@ USB허브
     정원: `화분 화분받침 화분받침대 받침대 모종삽 모종이 호미 갈퀨 삽 낫 예초기 잔디깍기 물뿌리개 스프링클러 호스 릴호스 비닐하우스 온실프레임 파라솔 해변의자 캠핑의자 캠핑테이블 쿨러 아이스박스 그릴 숯 가스버너 토치 바비큐집게 집게 불판 그릴망 훈연통 정원등 태양등 센서등 잔디씨 꽃씨 비료 거름 퇴비 흙 상토 배양토 화분흙 분무기 살충제 제초제 잡초제거기`.trim().split(/\s+/).filter(Boolean),
   };
 
-  const NAME_CATCH_PREFIX = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 전기 무선 접이식 휴대용 대형 소형 미니 업소용 가정용 야외 방수 캠핑 게이밍 사무용 운동용 주방용 욕실용 정원용 차량용 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`.trim().split(/\s+/).filter(Boolean);
+  const NAME_CATCH_PREFIX_GENERAL = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 접이식 휴대용 대형 소형 미니 야외 방수 캠핑 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`.trim().split(/\s+/).filter(Boolean);
+  const NAME_CATCH_PREFIX_TECH = `전기 무선`.trim().split(/\s+/).filter(Boolean);
+  /** 맥락 접두는 값으로 적은 분류의 명사에만 붙임 (무선수모·주방용수모 방지). */
+  const NAME_CATCH_PREFIX_CONTEXT = {
+    업소용: ['주방', '가구', '욕실', '전자'],
+    가정용: ['주방', '가구', '욕실', '전자'],
+    사무용: ['사무'],
+    운동용: ['스포츠'],
+    주방용: ['주방'],
+    욕실용: ['욕실'],
+    정원용: ['정원'],
+    게이밍: ['가구', '전자'],
+    차량용: ['전자', '가구'],
+  };
   const NAME_CATCH_CORE_OBJ = Object.values(NAME_CATCH_OBJ_GROUPS).flat();
 
   const NAME_CATCH_TREES = `
@@ -333,14 +346,36 @@ USB허브
       const s = line.trim();
       if (s && s.length <= 26) set.add(s);
     });
-    for (let i = 0; i < NAME_CATCH_PREFIX.length; i += 1) {
-      const p = NAME_CATCH_PREFIX[i];
+    for (let i = 0; i < NAME_CATCH_PREFIX_GENERAL.length; i += 1) {
+      const p = NAME_CATCH_PREFIX_GENERAL[i];
       for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {
         const o = NAME_CATCH_CORE_OBJ[j];
         const n = `${p}${o}`;
         if (n.length <= 26) set.add(n);
       }
     }
+    const techObjList = NAME_CATCH_OBJ_GROUPS.전자;
+    for (let i = 0; i < NAME_CATCH_PREFIX_TECH.length; i += 1) {
+      const p = NAME_CATCH_PREFIX_TECH[i];
+      for (let j = 0; j < techObjList.length; j += 1) {
+        const o = techObjList[j];
+        if (o.startsWith(p)) continue;
+        const n = `${p}${o}`;
+        if (n.length <= 26) set.add(n);
+      }
+    }
+    Object.keys(NAME_CATCH_PREFIX_CONTEXT).forEach((p) => {
+      const gkeys = NAME_CATCH_PREFIX_CONTEXT[p];
+      for (let g = 0; g < gkeys.length; g += 1) {
+        const arr = NAME_CATCH_OBJ_GROUPS[gkeys[g]];
+        if (!arr) continue;
+        for (let j = 0; j < arr.length; j += 1) {
+          const o = arr[j];
+          const n = `${p}${o}`;
+          if (n.length <= 26) set.add(n);
+        }
+      }
+    });
     NAME_CATCH_TREES.forEach((t) => { if (t.length <= 26) set.add(t); });
     NAME_CATCH_FLOWERS.forEach((t) => { if (t.length <= 26) set.add(t); });
     NAME_CATCH_GRASS.forEach((t) => { if (t.length <= 26) set.add(t); });
