@@ -1072,6 +1072,8 @@ USB허브
     let pixelFloaters = [];
     /** 플랫폼 도감 API(`__ALP_CODEX_API_PATH__` 등)로 받은 항목 — 배경에 추가 플로터로 표시 */
     let codexCache = null;
+    /** `shared_pixel_arts`(/api/ai/floaters)에서 받아 픽셀화한 항목 — 배경 플로터 */
+    let sharedFloatersCache = null;
 
     function wrapCoord(v, max) {
       const pad = 80;
@@ -1253,6 +1255,21 @@ USB허브
           );
         }
       }
+      if (sharedFloatersCache && sharedFloatersCache.length) {
+        const extra = Math.min(
+          sharedFloatersCache.length,
+          Math.min(24, Math.max(4, Math.floor(area / 52000))),
+        );
+        for (let i = 0; i < extra; i += 1) {
+          pixelFloaters.push(
+            makeFloaterFromCodexEntry(
+              sharedFloatersCache[i % sharedFloatersCache.length],
+              mobileLight,
+              i + 12288,
+            ),
+          );
+        }
+      }
     }
 
     function resize() {
@@ -1301,6 +1318,47 @@ USB허브
         .catch(() => {});
     }
 
+    async function loadSharedTableFloatersFromServer() {
+      if (!platformApi) return;
+      try {
+        const r = await fetch(
+          `${platformApi}/api/ai/floaters?limit=28&includeScrapyard=1`,
+        );
+        if (!r.ok) return;
+        const data = await r.json();
+        const arts = Array.isArray(data?.arts) ? data.arts : [];
+        if (!arts.length) return;
+        const batchSize = 6;
+        const out = [];
+        for (let i = 0; i < arts.length; i += batchSize) {
+          const slice = arts.slice(i, i + batchSize);
+          const batch = await Promise.all(
+            slice.map(async (a) => {
+              const imageData = a?.imageData;
+              const name = String(a?.name || '').trim() || 'shared';
+              if (!imageData || typeof imageData !== 'string') return null;
+              const art = await rasterizeImageUrlToPixelArt(
+                imageData,
+                PIXEL_GRID_W,
+                PIXEL_GRID_H,
+              );
+              const pa = art ? sanitizedCodexPixelArt(art) : null;
+              if (!pa) return null;
+              return { name, pixelArt: pa };
+            }),
+          );
+          for (let j = 0; j < batch.length; j += 1) {
+            if (batch[j]) out.push(batch[j]);
+          }
+        }
+        if (!out.length) return;
+        sharedFloatersCache = out;
+        resize();
+      } catch {
+        /* 네트워크/디코드 실패 시 무시 */
+      }
+    }
+
     function drawPixelFloater(f) {
       ctx.save();
       ctx.globalAlpha = f.alpha;
@@ -1334,6 +1392,7 @@ USB허브
 
     resize();
     loadCodexFromServer();
+    void loadSharedTableFloatersFromServer();
     window.addEventListener('resize', resize);
     draw();
   })();
