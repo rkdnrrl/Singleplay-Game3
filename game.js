@@ -1661,47 +1661,15 @@
   /** 스캔 패널 20→1초 카운터, 이후 경과 초(1초마다 증가) 표시 */
   let scanCountdownTimer = null;
 
-  /** 일반·희귀 AI 이미지 스캔 최초 성공 시 1회(토큰 단위) — 서버 지갑과 맞추려면 플랫폼에서 동일 보너스 처리 권장 */
-  const FIRST_COMMON_RARE_SCAN_BONUS_COINS = 100;
-  const LS_FIRST_COMMON_RARE_SCAN_BONUS = 'WEB_ALP_FIRST_CR_SCAN_BONUS_V1';
+  /** 일반·희귀: AI 이미지 스캔( URL → 픽셀 )이 성공할 때마다 지급 — 서버 지갑과 맞추려면 플랫폼에서 동일 보너스 처리 권장 */
+  const COMMON_RARE_SCAN_BONUS_COINS = 100;
 
-  function firstCommonRareScanBonusStorageKey() {
-    if (!alpToken) return '';
-    let h = 2166136261;
-    const s = String(alpToken);
-    for (let i = 0; i < s.length; i += 1) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return `${LS_FIRST_COMMON_RARE_SCAN_BONUS}:${(h >>> 0).toString(16)}`;
-  }
-
-  function hasClaimedFirstCommonRareScanBonus() {
-    const k = firstCommonRareScanBonusStorageKey();
-    if (!k) return true;
-    try {
-      return localStorage.getItem(k) === '1';
-    } catch {
-      return true;
-    }
-  }
-
-  function markClaimedFirstCommonRareScanBonus() {
-    const k = firstCommonRareScanBonusStorageKey();
-    if (!k) return;
-    try {
-      localStorage.setItem(k, '1');
-    } catch {}
-  }
-
-  function maybeGrantFirstCommonRareScanBonus(item, scanImageOk) {
+  function grantCommonRareScanImageBonus(item, scanImageOk) {
     if (!scanImageOk || !item) return;
     if (item.rarity !== 'common' && item.rarity !== 'rare') return;
     if (!isLoggedIn || !alpToken) return;
-    if (hasClaimedFirstCommonRareScanBonus()) return;
-    totalCoins += FIRST_COMMON_RARE_SCAN_BONUS_COINS;
-    item.firstScanBonusCoins = FIRST_COMMON_RARE_SCAN_BONUS_COINS;
-    markClaimedFirstCommonRareScanBonus();
+    totalCoins += COMMON_RARE_SCAN_BONUS_COINS;
+    item.scanBonusCoins = COMMON_RARE_SCAN_BONUS_COINS;
     updateCoinDisplay();
   }
 
@@ -1870,7 +1838,7 @@
         }
       }
     }
-    maybeGrantFirstCommonRareScanBonus(item, commonRareScanImageSuccess);
+    grantCommonRareScanImageBonus(item, commonRareScanImageSuccess);
     currentItem = item;
 
     await showResult(currentItem);
@@ -2009,8 +1977,8 @@
     resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
     resultSize.textContent  = `${item.size}cm`;
-    resultCoins.textContent = item.firstScanBonusCoins
-      ? `${item.coins} 코인 · 첫 스캔 +${item.firstScanBonusCoins} 코인`
+    resultCoins.textContent = item.scanBonusCoins
+      ? `${item.coins} 코인 · 스캔 +${item.scanBonusCoins} 코인`
       : `${item.coins} 코인`;
     resultCard.classList.remove('hidden');
 
