@@ -864,9 +864,141 @@ USB허브
     return { w, h, palette, cells, fromEmoji: false };
   }
 
+  let playerSpriteAnimTimer = null;
+
+  async function loadPixelArtFrameSequence(urls) {
+    const arts = [];
+    for (let i = 0; i < urls.length; i += 1) {
+      const u = String(urls[i] || '').trim();
+      if (!u) continue;
+      const a = await rasterizeImageUrlToPixelArt(u, PIXEL_GRID_W, PIXEL_GRID_H);
+      if (a && Array.isArray(a.cells) && Array.isArray(a.palette)) arts.push(a);
+    }
+    return arts;
+  }
+
+  /**
+   * 폴더에 `{startIndex}.png` … 순으로 읽어 루프 (idle 기본 startIndex=0 → 0.png…, action 기본 1 → 1.png…).
+   * 연속 maxGap번 실패하면 중단.
+   */
+  async function discoverPixelArtFramesInDir(dirBase, opts) {
+    const base = String(dirBase || '').trim().replace(/\/+$/, '');
+    if (!base) return [];
+    const startIndex =
+      opts && Number.isFinite(Number(opts.startIndex))
+        ? Math.max(0, Math.floor(Number(opts.startIndex)))
+        : 0;
+    const maxRaw = Number(window.__PLAYER_FOLDER_MAX_FRAMES__);
+    const maxFrames =
+      Number.isFinite(maxRaw) && maxRaw >= 1 ? Math.min(96, Math.floor(maxRaw)) : 48;
+    const gapRaw = Number(window.__PLAYER_FOLDER_FRAME_GAP_ABORT__);
+    const maxGap =
+      Number.isFinite(gapRaw) && gapRaw >= 1 ? Math.min(10, Math.floor(gapRaw)) : 3;
+    const arts = [];
+    let gap = 0;
+    for (let k = 0; k < maxFrames; k += 1) {
+      const i = startIndex + k;
+      let a = null;
+      for (const ext of ['png', 'webp']) {
+        a = await rasterizeImageUrlToPixelArt(`${base}/${i}.${ext}`, PIXEL_GRID_W, PIXEL_GRID_H);
+        if (a) break;
+      }
+      if (a) {
+        arts.push(a);
+        gap = 0;
+      } else {
+        gap += 1;
+        if (arts.length > 0 && gap >= maxGap) break;
+        if (arts.length === 0 && k >= 5) break;
+      }
+    }
+    return arts;
+  }
+
+  /**
+   * 우선순위: `__PLAYER_IDLE_FRAMES__` 배열 → (폴더) `__PLAYER_IDLE_DIR__` 기본 0.png부터.
+   * 액션: `__PLAYER_ACTION_FRAMES__` → (폴더) `__PLAYER_ACTION_DIR__` 기본 1.png부터 (`__PLAYER_ACTION_FRAME_START__` 로 덮어쓰기).
+   * idle 폴더가 비어 있고 action만 있으면 대기는 코드 기본 픽셀 1장.
+   * 폴더 스캔 끄기: `__PLAYER_DISABLE_FOLDER_SCAN__ = true`
+   * 없으면 단일 `__PLAYER_SPRITE_URL__` 또는 기본 픽셀.
+   */
   async function initPlayerSprite() {
     const host = document.getElementById('playerSpriteHost');
     if (!host) return;
+    if (playerSpriteAnimTimer != null) {
+      clearInterval(playerSpriteAnimTimer);
+      playerSpriteAnimTimer = null;
+    }
+
+    const idleUrls =
+      typeof window !== 'undefined' && Array.isArray(window.__PLAYER_IDLE_FRAMES__)
+        ? window.__PLAYER_IDLE_FRAMES__.filter((u) => String(u || '').trim())
+        : [];
+    const actionUrls =
+      typeof window !== 'undefined' && Array.isArray(window.__PLAYER_ACTION_FRAMES__)
+        ? window.__PLAYER_ACTION_FRAMES__.filter((u) => String(u || '').trim())
+        : [];
+    const folderScanOff =
+      typeof window !== 'undefined' && window.__PLAYER_DISABLE_FOLDER_SCAN__ === true;
+    const idleDir =
+      typeof window !== 'undefined' &&
+      window.__PLAYER_IDLE_DIR__ != null &&
+      String(window.__PLAYER_IDLE_DIR__).trim()
+        ? String(window.__PLAYER_IDLE_DIR__).trim().replace(/\/+$/, '')
+        : 'assets/player/idle';
+    const actionDir =
+      typeof window !== 'undefined' &&
+      window.__PLAYER_ACTION_DIR__ != null &&
+      String(window.__PLAYER_ACTION_DIR__).trim()
+        ? String(window.__PLAYER_ACTION_DIR__).trim().replace(/\/+$/, '')
+        : 'assets/player/action';
+
+    const idleStartRaw = Number(window.__PLAYER_IDLE_FRAME_START__);
+    const idleStart =
+      Number.isFinite(idleStartRaw) && idleStartRaw >= 0 ? Math.floor(idleStartRaw) : 0;
+    const actionStartRaw = Number(window.__PLAYER_ACTION_FRAME_START__);
+    const actionStart =
+      Number.isFinite(actionStartRaw) && actionStartRaw >= 0
+        ? Math.floor(actionStartRaw)
+        : 1;
+
+    let idleArts = [];
+    if (idleUrls.length) {
+      idleArts = await loadPixelArtFrameSequence(idleUrls);
+    } else if (!folderScanOff) {
+      idleArts = await discoverPixelArtFramesInDir(idleDir, { startIndex: idleStart });
+    }
+
+    let actionArts = [];
+    if (actionUrls.length) {
+      actionArts = await loadPixelArtFrameSequence(actionUrls);
+    } else if (!folderScanOff) {
+      actionArts = await discoverPixelArtFramesInDir(actionDir, { startIndex: actionStart });
+    }
+
+    if (!idleArts.length && actionArts.length) {
+      idleArts = [createDefaultPlayerPixelArt()];
+    }
+
+    if (idleArts.length) {
+      let frameIdx = 0;
+      const msRaw = Number(window.__PLAYER_ANIM_MS__);
+      const tickMs =
+        Number.isFinite(msRaw) && msRaw >= 40 && msRaw <= 2000 ? Math.floor(msRaw) : 220;
+      playerSpriteAnimTimer = window.setInterval(() => {
+        const useAction =
+          state === 'MINIGAME' &&
+          mini.pressing &&
+          actionArts.length > 0;
+        const seq = useAction ? actionArts : idleArts;
+        const art = seq[frameIdx % seq.length];
+        frameIdx += 1;
+        mountPixelArt(host, art, 80, 80);
+      }, tickMs);
+      mountPixelArt(host, idleArts[0], 80, 80);
+      return;
+    }
+
     const url =
       typeof window !== 'undefined' && window.__PLAYER_SPRITE_URL__
         ? String(window.__PLAYER_SPRITE_URL__).trim()
