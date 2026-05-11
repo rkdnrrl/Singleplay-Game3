@@ -1085,7 +1085,7 @@ USB허브
       let frameIdx = 0;
       const msRaw = Number(window.__PLAYER_ANIM_MS__);
       const tickMs =
-        Number.isFinite(msRaw) && msRaw >= 40 && msRaw <= 2000 ? Math.floor(msRaw) : 220;
+        Number.isFinite(msRaw) && msRaw >= 40 && msRaw <= 2000 ? Math.floor(msRaw) : 110;
       playerSpriteAnimTimer = window.setInterval(() => {
         const useAction =
           state === 'MINIGAME' &&

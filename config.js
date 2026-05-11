@@ -35,7 +35,7 @@
   // action 도 `action/1.png` … (기본 시작 1, `__PLAYER_ACTION_FRAME_START__`)
   // idle 폴더가 비어 있고 action 만 있으면 대기 화면은 코드 기본 캐릭터, 미니게임 누를 때만 action 루프.
   // 수동 목록이 필요하면 아래 배열이 폴더 스캔보다 우선.
-  // window.__PLAYER_ANIM_MS__ = 220;
+  // window.__PLAYER_ANIM_MS__ = 110;
   // window.__PLAYER_IDLE_DIR__ = 'assets/player/idle';
   // window.__PLAYER_ACTION_DIR__ = 'assets/player/action';
   // window.__PLAYER_DISABLE_FOLDER_SCAN__ = true;
