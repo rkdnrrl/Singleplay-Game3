@@ -30,5 +30,5 @@ app.use(express.static(__dirname, {
 }));
 
 app.listen(PORT, () => {
-  console.log(`Space-Fishing (Singleplay-Game3) on port ${PORT}`);
+  console.log(`Scrap-pickup (Singleplay-Game3) on port ${PORT}`);
 });

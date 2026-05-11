@@ -65,91 +65,76 @@
   });
 
   /* ── 절차적 아이템 (희귀도 = 이름 멋짐·예쁨 점수 기반) ─── */
-  const RARITY_LABEL = { common: '일반', rare: '희귀', epic: '에픽', legendary: '전설' };
+  const RARITY_LABEL = { common: '잡철', rare: '선별', epic: '우량', legendary: '특급' };
 
-  /** 에픽·전설만 `/api/ai/catch` 사용 (일반·희귀는 절차적) */
-  function rarityUsesAiCatch(rarity) {
-    return rarity === 'epic' || rarity === 'legendary';
-  }
-
-  /** 이름에 걸리면 희귀도 점수(prestige)에 가산 */
+  /** 이름에 걸리면 등급 점수(prestige)에 가산 — 고철·비철·설비 느낌 */
   const NAME_PRESTIGE_LEGEND = [
-    '블랙홀', '평행우주', '다차원', '오메가', '퀀텀', '다크매터', '멸망한 행성', '암흑물질',
+    '터보발전', '메인샤프트', '압연기', '냉연', '합금강', '전기로', '대형모터', '크랭크샤프트',
   ];
   const NAME_PRESTIGE_EPIC = [
-    '중성자', '펄사', '성간', '반중력', '양자', '고대', '외계', '프로토타입', '불완전',
-    '인공물', '모듈', '회로',
-    
+    '스테인리스', '동선', '알루미늄', '전기아연', '크롬', '니켈', '티타늄', '브론즈',
+    '하이텐', 'SNCM', 'SCM', 'SUS',
   ];
   const NAME_PRESTIGE_RARE = [
-    '네뷸라', '허블', '플라즈마', '이온', '광자', '위성', '유물', '전쟁터', '조각난',
+    '형강', '철근', '각재', '파이프', '플랜지', '밸브', '유니버설', '기어', '베어링',
   ];
-  /** 시적인·반짝이는 느낌 */
   const NAME_PRESTIGE_PRETTY = [
-    '성운', '은하', '솔라', '프리즘', '클러스터', '코어', '샤드', '결정', '해파리', '돌고래',
-    '포식자', '상어', '문어',
+    '광택', '도금', '연동', '압연', '냉간', '정밀', '가공', '절단', '레이저', '용접',
+    '크롬', '아연',
   ];
-  /** 이름이 밋밋해지는 단어 */
-  const NAME_PRESTIGE_DRAB = ['쓰레기', '더미', '녹슨', '잔해', '(손상)'];
+  const NAME_PRESTIGE_DRAB = ['슬래그', '철가루', '찌꺼기', '혼입', '(손상)', '불명'];
 
-  /** API·게임 로직용 단일 종류 (이름은 전 카테고리 단어 혼합) */
-  const UNIFIED_TYPE = 'cosmic';
-  const SILHOUETTE_TYPES = ['fish', 'creature', 'artifact', 'crystal', 'debris'];
+  /** API·저장용 타입 — 고철 스크랩 */
+  const UNIFIED_TYPE = 'scrap';
+  const SILHOUETTE_TYPES = ['ingot', 'wire', 'plate', 'machine', 'shard'];
 
   const NAME_PARTS = {
-    fish: {
-      pre:  ['성운', '네뷸라', '이온', '플라즈마', '펄사', '광자', '허블', '암흑물질', '중성자'],
-      core: ['피라냐', '청어', '고등어', '멸치', '문어', '해파리', '상어', '오징어', '가자미', '우럭'],
-      post: [' 유체', ' 아종', ' α형', ' β형', ' (미기록)', ' 표본', ''],
+    ingot: {
+      pre: ['야적장', '압연라인', '전기로', '순환', '가열로', '냉각', '고로', '정련'],
+      core: ['빌릿', '슬래브', '블룸', '코일', '인곳', '괴철', 'H빔', '판재'],
+      post: [' A급', ' 혼합', ' Lot', ' (불명)', ''],
     },
-    creature: {
-      pre:  ['반중력', '양자', '다차원', '평행우주', '블랙홀', '성간', '고대'],
-      core: ['플랑크톤', '포식자', '기생체', '돌고래', '해파리', '포자', '유기체'],
-      post: [' 번식군', ' 군체', ' 개체', ' -7세대', ''],
+    wire: {
+      pre: ['도금', '연동', '산세', '아연도', '스테인', '비닐피복', '동심'],
+      core: ['와이어', '쇠사슬', '보빈', '스트랜드', '리드선', '로프', '체인'],
+      post: [' Φ7', ' 굵기불균', ' 단위중량', ''],
     },
-    artifact: {
-      pre:  ['위성', '고대', '멸망한 행성', '외계', '조각난', '불완전'],
-      core: ['파편', '석판', '회로', '모듈', '유물', '인공물', '잔해', '냉장고'],
-      post: [' MK-Ⅱ', ' (손상)', ' 프로토타입', ''],
+    plate: {
+      pre: ['판금', '두께공차', '용접', '절단', '레이저', '프레스', '코팅'],
+      core: ['철판', '두께판', '패치', '보강판', '스킨플레이트', '리브', '브래킷'],
+      post: [' 절단편', ' 코너', ' 단면', ''],
     },
-    crystal: {
-      pre:  ['우주', '퀀텀', '다크매터', '오메가', '솔라', '은하'],
-      core: ['결정', '코어', '샤드', '프리즘', '클러스터'],
-      post: [' α', ' Ω', ' (공명)', ''],
+    machine: {
+      pre: ['폐차', '해체', '노후', '양산종료', '정비불량', '라인교체', '중고설비'],
+      core: ['크랭크', '변속기', '톱니바퀴', '유니버설', '베어링하우징', '실린더', '플라이휠'],
+      post: [' 잔류오일', ' 초기형', ' MK2', ''],
     },
-    debris: {
-      pre:  ['우주', '궤도', '전쟁터', '버려진', '녹슨'],
-      core: ['쓰레기', '드론', '패널', '엔진', '컨테이너', '위성조각'],
-      post: [' 더미', ' 묶음', ''],
+    shard: {
+      pre: ['파쇄', '선별', '자력선별', '비철혼입', '슬래그', '샤링', '절단'],
+      core: ['파편', '슬리버', '가루', '조각', '스크랩', '리바', '슬래그덩이'],
+      post: [' 더미', ' 포대', ' 혼입', ''],
     },
   };
 
-  /**
-   * 잡기 이름 조합 확장 — 기본 NAME_PARTS 외 수식·종명을 넉넉히 두어
-   * `수식어 + 본체` 한 줄만으로도 대략 1만 가지 안팎의 고유 문자열이 나오게 함.
-   */
+  /** 이름 조합 확장 — 야드·압연·비철 용어 */
   const NAME_CATCH_MOD_EXT = `
-간섭파 잔광 저궤도 고각도 경계층 등온층 유성성 암점흔 위상수 공진층 희박대기 동위원소 방사청 중력렌즈
-시공리프트 이차원막 삼차원막 빛의잔류 양자얽힘 광속접근 잔류궤도 간섭대 에너지벨트 플라즈마층
-중성대 전하분리 자기장선 중력파속 극초기우주 암흑에너지 우주막대 성간먼지 행성파편 궤도잔류
-위성파편 태양풍층 코로나링 헤일로링 드레이크방정식 페르미면 볼츠만층 라그랑주점 힐구역
-로쉬한계 동심원궤도 타원근점 원격탐사 초분광 적외잔광 근적외선 중적외선 심적외선 초고해상도
-다중주파수 위상배열 간섭계측 동기궤도 정지궤도 극궤도 역행궤도 공전면 경사각 보정궤도
-추력벡터 자세제어 추진제잔류 연료증발 냉각막 열차폐 방열판 임계온도 초전도링 양자점
-나노구조 미세공동 초미세입자 초분진 응축핵 응고층 대류셀 전하중화 이온화층 플라즈마토러스
+야적장 선별장 압연로 냉연로 가열로 전기로 고로 슬래그장 비철장 차대번호 열처리 냉각
+자력선별 바스켓 크레인 지게차 포크립 클램프 절단라인 프레스 브레이크 샤링 단조
+용접라인 아크가스 CO2용접 가스절단 플라즈마절단 레이저가공 NC선반 밀링 탭핑
+도금라인 연동산세 전기아연 크롬도금 니켈도금 인산염 피막 샌드블라스트 분체도장
+적재단위 화물표준 중량표준 수분검사 성분검사 스펙트럼 XRF 촉매회수 슬러지
+압연재 냉연판 열연판 아연도판 동판 알루미늄판 스테인판 철근콘크리트 프리캐스트
 `.trim().split(/\s+/).filter(Boolean);
 
   const NAME_CATCH_BODY_EXT = `
-갈치 병어 노래미 도다리 숭어 뱅어 한치 광어 참돔 돌돔 점볼락 뱀장어 송사리 모래무지 은어 향어 빙어
-송어 납자루 꺽지 꺽다리 피라미 가물치 동자개 자라 쏘가리 얼룩망둑 참굴바리 참종개 수수미꾸리
-민물고기 잉붕어 토종붕어 각시멸 볼락 농어 치어 두만멸 가자미 대구 명태 조기 방어 삼치
-가오리 해마 황새치 벨루가 연어 아귀 우럭 임연수어 붕어 잉어 메기 장어 민어 복어 도미
-참치 청어 고등어 멸치 전어 전갱이 가재 새우 게 조개 거북 물개 물범 해마초 날치 송사리치
-바다뱀 전기뱀장어 은연어 연어치 참황어 황줄돔 줄돔 벵에돔 돌돔치 참돔치 감성돔 돌문어
-쭈꾸미 한치체 문어빙어 오징어새우 꽃게 대게 킹크랩 랍스터 가리비 전복 소라 성게 불가사리
+볼트 너트 와셔 스프링 핀 리벳 클램프 브래킷 샤프트 키웨이 스플라인 플랜지 게이트밸브
+글로브밸브 체크밸브 버터플라이 커플링 호스 니플 엘보 티 레듀서 캡 엔드플레이트
+기어 랙 피니언 스프로킷 체인 스프로킷 토크렌치 임팩트 그라인더 디스크 절단석
+전동공구 에어호스 콤프레서 필터 오일필터 에어필터 라디에터 인터쿨러 터보차저
+배터리 단자 퓨즈 릴레이 스타터 발전기 모터 인버터 PLC 센서 엔코더 리미트스위치
 `.trim().split(/\s+/).filter(Boolean);
 
-  /** 이름 토큰 → 픽셀 실루엣 종류 (fish·creature·artifact·crystal·debris) */
+  /** 이름 토큰 → 픽셀 실루엣 종류 (ingot·wire·plate·machine·shard) */
   const FRAGMENT_SILHOUETTE = (() => {
     const m = {};
     Object.keys(NAME_PARTS).forEach((cat) => {
@@ -259,14 +244,14 @@
     if (m) return [normSilWord(m[1])].filter(Boolean);
     m = n.match(/^녹슨 (.+)$/);
     if (m) return [normSilWord(m[1])].filter(Boolean);
-    m = n.match(/^우주에서 떨어진 (.+)$/);
+    m = n.match(/^고철장에서\s*나온\s+(.+)$/);
     if (m) return [normSilWord(m[1])].filter(Boolean);
     return null;
   }
 
   /**
-   * 잡기 이름 — 확장 풀(mod×body)로 고유 조합이 대략 1만 가지 안팎.
-   * 희귀도 점수는 기존 NAME_PRESTIGE·NAME_PARTS 단어가 그대로 걸리도록 유지.
+   * 줍는 고철 이름 — 확장 풀(mod×body)로 조합 수 확보.
+   * 등급 점수는 NAME_PRESTIGE·NAME_PARTS 단어가 그대로 걸리도록 유지.
    */
   function generateCatchName() {
     const allCore = SILHOUETTE_TYPES.flatMap((k) => cores(k));
@@ -305,22 +290,19 @@
     return name || `${pick(mods)} ${pick(bodies)}`;
   }
 
-  /** 배경용: 물고기·해양 생명 — 짧은 1~2어절 */
-  function generateBackgroundMarineName() {
-    const cf = cores('fish');
-    const ccAll = cores('creature');
-    const marineCreature = ccAll.filter((w) =>
-      ['플랑크톤', '포식자', '돌고래', '해파리', '기생체'].indexOf(w) >= 0,
-    );
-    const cc = marineCreature.length ? marineCreature : ccAll;
-    const pf = pres('fish');
-    const pc = pres('creature');
+  /** 배경용: 짧은 고철·부품 명칭 */
+  function generateBackgroundScrapName() {
+    const short = [
+      ...cores('shard').slice(0, 10),
+      ...cores('wire').slice(0, 6),
+      '철가루', '리바', '슬리버', '파편', '볼트', '너트',
+    ];
+    const pre = [...pres('shard'), ...pres('ingot')].slice(0, 12);
 
     const builders = [
-      () => pick(cf),
-      () => `${pick(pf)} ${pick(cf)}`,
-      () => `${pick(pc)} ${pick(cf)}`,
-      () => `${pick(cf)} ${pick(cc)}`,
+      () => pick(short),
+      () => `${pick(pre)} ${pick(short)}`,
+      () => `${pick(pres('plate'))} ${pick(cores('plate'))}`,
     ];
 
     let name = '';
@@ -328,7 +310,7 @@
       name = pick(builders)();
       if (name && name.length <= 16) break;
     }
-    return name || `${pick(pf)} ${pick(cf)}`;
+    return name || `${pick(pre)} ${pick(short)}`;
   }
 
   /** 키워드·기호만 반영 (길이 보정은 prestigeFromName에서) */
@@ -355,9 +337,9 @@
 
     if (/[αβΩ]/.test(name)) s += 11;
     if (/Ⅱ/.test(name)) s += 9;
-    if (name.includes('(미기록)')) s += 9;
-    if (name.includes('(공명)')) s += 10;
-    if (name.includes('-7세대')) s += 8;
+    if (name.includes('(불명)')) s += 5;
+    if (name.includes('Lot')) s += 6;
+    if (/SUS|SCM|SNCM/i.test(name)) s += 10;
 
     return s;
   }
@@ -487,7 +469,7 @@
 
   /** 픽셀: 같은 이름이면 동일 패턴·동일 샘플링 */
   function hashPixelArtSeed(item) {
-    const s = `${String(item.name || '')}\0fish`;
+    const s = `${String(item.name || '')}\0scrap`;
     let h = 2166136261;
     for (let i = 0; i < s.length; i += 1) {
       h ^= s.charCodeAt(i);
@@ -508,27 +490,27 @@
 
   /**
    * 스프라이트 URL이 없을 때: 이름·시드 기반 32×32 추상 패턴.
-   * marineBias 가 true 면 배경 플로터(해양)용 청록 톤.
+   * alternateRust 가 true 면 녹·구리 톤, false 면 냉철·회색 톤.
    */
-  function generateProceduralPixelArtFromItem(item, salt, marineBias) {
+  function generateProceduralPixelArtFromItem(item, salt, alternateRust) {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
     const seed0 = hashPixelArtSeed(item);
-    const seed = (seed0 ^ (salt >>> 0) ^ (marineBias ? 0x51ed4eae : 0)) >>> 0;
+    const seed = (seed0 ^ (salt >>> 0) ^ (alternateRust ? 0x51ed4eae : 0)) >>> 0;
     const rng = mulberry32(seed);
 
     const palette = [PIXEL_MAT];
     const nColors = 10 + ((seed >>> 3) % 5);
     for (let ci = 0; ci < nColors; ci += 1) {
       let r; let g; let b;
-      if (marineBias) {
-        r = (30 + rng() * 120) | 0;
-        g = (80 + rng() * 100) | 0;
-        b = (120 + rng() * 135) | 0;
+      if (alternateRust) {
+        r = (88 + rng() * 95) | 0;
+        g = (38 + rng() * 55) | 0;
+        b = (18 + rng() * 42) | 0;
       } else {
-        r = (80 + rng() * 160) | 0;
-        g = (40 + rng() * 140) | 0;
-        b = (140 + rng() * 115) | 0;
+        r = (52 + rng() * 95) | 0;
+        g = (54 + rng() * 92) | 0;
+        b = (58 + rng() * 100) | 0;
       }
       palette.push(hexFromRgbByte(r, g, b));
     }
@@ -556,7 +538,7 @@
 
   /**
    * 사용자 제공 PNG/WebP 등 — URL 이미지를 픽셀 그리드로 샘플링.
-   * `window.__CATCH_SPRITE_RULES__ = [{ kw: '피라냐', url: 'https://.../x.png' }, ...]`
+   * `window.__CATCH_SPRITE_RULES__ = [{ kw: '볼트', url: 'https://.../x.png' }, ...]`
    * 매칭은 이름 안에서 더 오른쪽에서 끝나는 kw 우선(동률이면 더 긴 kw).
    * 다른 도메인 이미지는 서버에서 CORS(Access-Control-Allow-Origin)가 열려 있어야 함.
    */
@@ -682,19 +664,6 @@
     });
   }
 
-  async function generateMarineFloaterPixelArt(item) {
-    const w = PIXEL_GRID_W;
-    const h = PIXEL_GRID_H;
-    const base = hashPixelArtSeed(item);
-    const pickSeed = base ^ 0x9e3779b9;
-    const spriteUrl = pickSpriteUrlForItem(item.name);
-    if (spriteUrl) {
-      const fromImg = await rasterizeImageUrlToPixelArt(spriteUrl, w, h);
-      if (fromImg) return fromImg;
-    }
-    return generateProceduralPixelArtFromItem(item, pickSeed, true);
-  }
-
   async function generateCatchPixelArt(item) {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
@@ -707,7 +676,7 @@
     return generateProceduralPixelArtFromItem(item, base, false);
   }
 
-  /** 보관함 등에서 픽셀 재생성용 최소 필드 */
+  /** 적재함 등에서 픽셀 재생성용 최소 필드 */
   function itemStubForArt(row) {
     return {
       name: row.name,
@@ -743,7 +712,7 @@
     hostEl.appendChild(canvas);
   }
 
-  /** 낚시 장면 기본 플레이어 — 논리 해상도 32×32 (잡은 생명체와 동일 그리드). */
+  /** 야적장 플레이어 스프라이트 — 논리 해상도 32×32 (줍는 고철과 동일 그리드). */
   function createDefaultPlayerPixelArt() {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
@@ -906,11 +875,6 @@
   const targetZone        = document.getElementById('targetZone');
   const catchBar          = document.getElementById('catchBar');
   const catchProgressFill = document.getElementById('catchProgressFill');
-  const scanPanel          = document.getElementById('scanPanel');
-  const scanCountNum       = document.getElementById('scanCountNum');
-  const scanCountdownLine  = document.getElementById('scanCountdownLine');
-  const scanOngoingLine    = document.getElementById('scanOngoingLine');
-  const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultEpicCongrats  = document.getElementById('resultEpicCongrats');
@@ -936,7 +900,7 @@
   /** 마우스: 드래그 스크롤 후 뜨는 click 으로 3D가 중복 열리지 않게 */
   let suppressNextInvListClick = false;
 
-  /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 보관함이 터치 가로채기 방지 */
+  /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 적재함이 터치 가로채기 방지 */
   let minigameScrollLocked = false;
   function minigameTouchMoveBlock(e) {
     e.preventDefault();
@@ -1001,7 +965,7 @@
       })
       .catch(() => {});
 
-    // 총 포획 수
+    // 총 줍은 개수
     fetch(`${platformApi}/api/catches/stats`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
@@ -1014,7 +978,7 @@
       })
       .catch(() => {});
 
-    // 보관함 로드 (미판매 아이템)
+    // 적재함 로드 (미판매)
     fetch(`${platformApi}/api/catches/inventory?limit=50`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
@@ -1066,7 +1030,6 @@
 
     let stars = [];
     let pixelFloaters = [];
-    let sharedBmps = []; // shared_pixel_arts 에서 로드한 AI 이미지 비트맵
 
     function wrapCoord(v, max) {
       const pad = 80;
@@ -1094,53 +1057,16 @@
       return c;
     }
 
-    /** base64 이미지 URL → 배경용 캔버스 비트맵 */
-    function imageUrlToFloaterBmp(url, size) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement('canvas');
-          c.width = size;
-          c.height = size;
-          const cctx = c.getContext('2d');
-          cctx.imageSmoothingEnabled = false;
-          cctx.drawImage(img, 0, 0, size, size);
-          resolve(c);
-        };
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-    }
-
-    /** sharedBmps 에서 꺼낸 AI 이미지로 플로터 생성 */
-    function makeSharedFloater(bmp, mobileLight) {
-      const speedMul = mobileLight ? 0.42 : 1;
-      const speed = reducedMotion ? 0 : (0.04 + Math.random() * 0.3) * speedMul;
-      const ang = Math.random() * Math.PI * 2;
-      return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.5),
-        rot: Math.random() * Math.PI * 2,
-        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.002 - 0.001) * speedMul,
-        bmp,
-        alpha: mobileLight ? 0.55 + Math.random() * 0.2 : 0.78 + Math.random() * 0.18,
-        halfW: bmp.width / 2,
-        halfH: bmp.height / 2,
-      };
-    }
-
-    /** index 짝수: 해양, 홀수: 우주·잔해 등 일반 이름 */
+    /** index 짝수: 짧은 명칭 + 녹/구리 톤, 홀수: 풀 이름 + 냉철 톤 */
     function makePixelFloater(index, mobileLight) {
-      const marine = (index & 1) === 0;
-      const name = marine ? generateBackgroundMarineName() : generateCatchName();
+      const rustAlt = (index & 1) === 0;
+      const name = rustAlt ? generateBackgroundScrapName() : generateCatchName();
       const rarity = rarityFromName(name);
       const size = rollSize(rarity);
       const item = { name, type: UNIFIED_TYPE, rarity, size };
       const base = hashPixelArtSeed(item);
-      const pickSeed = marine ? base ^ 0x9e3779b9 : base;
-      const art0 = generateProceduralPixelArtFromItem(item, pickSeed, marine);
+      const pickSeed = rustAlt ? base ^ 0x9e3779b9 : base;
+      const art0 = generateProceduralPixelArtFromItem(item, pickSeed, rustAlt);
       const scale = mobileLight
         ? 2
         : 2 + (Math.random() < 0.28 ? 1 : 0);
@@ -1185,15 +1111,7 @@
       const n = mobileLight
         ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
         : Math.min(34, Math.max(14, Math.floor(area / 26000)));
-      // AI 이미지가 있으면 최대 60%를 AI 플로터로, 나머지는 절차적
-      const aiCount = Math.min(sharedBmps.length, Math.floor(n * 0.6));
-      const shuffled = sharedBmps.length > 0
-        ? [...sharedBmps].sort(() => Math.random() - 0.5)
-        : [];
-      pixelFloaters = [
-        ...Array.from({ length: aiCount }, (_, i) => makeSharedFloater(shuffled[i % shuffled.length], mobileLight)),
-        ...Array.from({ length: n - aiCount }, (_, i) => makePixelFloater(i, mobileLight)),
-      ];
+      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
     }
 
     function drawPixelFloater(f) {
@@ -1227,43 +1145,9 @@
       requestAnimationFrame(draw);
     }
 
-    /** shared_pixel_arts 에서 AI 이미지 로드 후 배경 플로터에 반영 */
-    async function loadSharedFloaters() {
-      if (!platformApi) return;
-      try {
-        const headers = alpToken ? { Authorization: `Bearer ${alpToken}` } : {};
-        const res = await fetch(`${platformApi}/api/ai/floaters?limit=20`, { headers });
-        if (!res.ok) return;
-        const { arts = [] } = await res.json();
-        if (arts.length === 0) return;
-
-        const BMP_SIZE = 56; // 배경 오브젝트 크기(px)
-        const loaded = (await Promise.all(arts.map((a) => imageUrlToFloaterBmp(a.imageData, BMP_SIZE))))
-          .filter(Boolean);
-        if (loaded.length === 0) return;
-
-        sharedBmps = loaded;
-        // 로드 완료 후 바로 플로터 교체 (resize 재호출 없이)
-        const mobileLight =
-          isMobileViewport ||
-          (typeof window.matchMedia === 'function' &&
-            window.matchMedia('(max-width: 520px)').matches);
-        const aiCount = Math.min(sharedBmps.length, Math.floor(pixelFloaters.length * 0.6));
-        const shuffled = [...sharedBmps].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < aiCount; i++) {
-          const bmp = shuffled[i % shuffled.length];
-          pixelFloaters[i] = makeSharedFloater(bmp, mobileLight);
-        }
-      } catch {
-        // 실패 시 절차적 플로터 유지
-      }
-    }
-
     resize();
     window.addEventListener('resize', resize);
     draw();
-    // 약간 지연 후 로드 (alpToken 세팅 시간 확보)
-    setTimeout(loadSharedFloaters, 2000);
   })();
 
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
@@ -1308,7 +1192,7 @@
     return { name, type: UNIFIED_TYPE, rarity, size, coins };
   }
 
-  /* ── 보관함 ──────────────────────────────────────────── */
+  /* ── 적재함(인벤토리) ─────────────────────────────────── */
   function syncInventoryDockLayoutMode() {
     if (!inventoryDock || !inventoryScrollWrap) return;
     const strip = window.innerWidth <= 520 && window.innerHeight > window.innerWidth;
@@ -1340,7 +1224,7 @@
     });
   }
 
-  /** 세로+스트립 모드에서 잡기 미니게임이 열리면 보관함을 숨겨 낚시 UI를 가리지 않게 함 */
+  /** 세로+스트립 모드에서 미니게임이 열리면 적재함을 숨겨 게임 UI를 가리지 않게 함 */
   function syncInventoryDockMinigamePosition() {
     if (!inventoryDock || !minigame || !inventoryScrollWrap) return;
     const strip = inventoryDock.classList.contains('inventory-dock--portrait-strip');
@@ -1362,7 +1246,7 @@
     syncInventoryDockMinigamePosition();
 
     if (inventory.length === 0) {
-      inventoryList.innerHTML = '<p class="log-empty">보관함이 비어있습니다</p>';
+      inventoryList.innerHTML = '<p class="log-empty">적재함이 비어 있습니다</p>';
       if (sellAllBtn) sellAllBtn.classList.add('hidden');
       syncInventoryScrollOverflow();
       return;
@@ -1371,7 +1255,7 @@
     const totalValue = inventory.reduce((s, i) => s + i.coins, 0);
     if (sellAllBtn) {
       sellAllBtn.classList.remove('hidden');
-      sellAllBtn.textContent = `전체 팔기 · ${totalValue.toLocaleString()} 코인`;
+      sellAllBtn.textContent = `고철 전부 팔기 · ${totalValue.toLocaleString()} 코인`;
     }
 
     inventoryList.innerHTML = '';
@@ -1424,7 +1308,7 @@
       const total = withId.reduce((s, i) => s + (i.coins || 0), 0);
       sellConfirmMsg.textContent =
         n > 0
-          ? `보관함의 아이템 ${n}개를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()} 코인`
+          ? `적재함의 고철 ${n}덩이를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()} 코인`
           : '팔 수 있는 아이템이 없습니다.';
     }
     sellConfirmOverlay.classList.remove('hidden');
@@ -1658,27 +1542,11 @@
     cfg: null,
   };
 
-  /** 스캔 패널 20→1초 카운터, 이후 경과 초(1초마다 증가) 표시 */
-  let scanCountdownTimer = null;
-
-  /** 일반·희귀: AI 이미지 스캔( URL → 픽셀 )이 성공할 때마다 지급 — 서버 지갑과 맞추려면 플랫폼에서 동일 보너스 처리 권장 */
-  const COMMON_RARE_SCAN_BONUS_COINS = 100;
-
-  function grantCommonRareScanImageBonus(item, scanImageOk) {
-    if (!scanImageOk || !item) return;
-    if (item.rarity !== 'common' && item.rarity !== 'rare') return;
-    if (!isLoggedIn || !alpToken) return;
-    totalCoins += COMMON_RARE_SCAN_BONUS_COINS;
-    item.scanBonusCoins = COMMON_RARE_SCAN_BONUS_COINS;
-    updateCoinDisplay();
-  }
-
   /* ── 상태 전환 ───────────────────────────────────────── */
   function goIdle() {
     state = 'IDLE';
     setMinigameScrollLocked(false);
     castBtn.classList.remove('hidden');
-    stopScanPanel();
     stopStatusScanning();
     statusMsg.classList.add('hidden');
     minigame.classList.add('hidden');
@@ -1693,7 +1561,7 @@
     state = 'CASTING';
     castBtn.classList.add('hidden');
     resultCard.classList.add('hidden');
-    showStatus('낚싯줄을 드리우는 중...');
+    showStatus('자석을 내리는 중...');
     beamLine.classList.add('extended');
 
     setTimeout(() => {
@@ -1706,11 +1574,10 @@
 
   function goWaiting() {
     state = 'WAITING';
-    showStatus('우주의 심연을 기다리는 중...');
+    showStatus('야적장을 훑는 중...');
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
-      // 미니게임에는 희귀도만 필요 — 에픽+는 잡은 뒤 AI가 이름·이미지 생성
       currentItem = { rarity: rollRarity() };
       goMinigame();
     }, wait);
@@ -1721,7 +1588,7 @@
   function goMinigame() {
     state = 'MINIGAME';
     lureEl.classList.add('biting');
-    showStatus('무언가 걸렸다!');
+    showStatus('금속 반응!');
     minigame.classList.remove('hidden');
     startMinigame(currentItem);
     syncInventoryDockMinigamePosition();
@@ -1741,113 +1608,14 @@
 
     if (!success) {
       state = 'IDLE';
-      showStatus('놓쳤다... 다시 도전!');
+      showStatus('놓쳤다... 다시 줍기!');
       castBtn.classList.remove('hidden');
       return;
     }
 
     state = 'RESULT';
     const rarity = currentItem.rarity;
-    let commonRareScanImageSuccess = false;
-
-    // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
-    let aiData = null;
-    if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      startScanPanelCountdown();
-      try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 60000); // 60초
-        const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${alpToken}`,
-          },
-          body: JSON.stringify({ rarity }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (aiRes.ok) {
-          aiData = await aiRes.json();
-        }
-      } catch {
-        // 타임아웃 or 네트워크 오류 → 절차적 폴백
-      }
-      if (!aiData?.name) {
-        stopScanPanel();
-      }
-    }
-
-    // ── 아이템 완성 (AI 성공 or 절차적 폴백) ──
-    let item;
-    if (aiData?.name) {
-      const type = aiData.type || UNIFIED_TYPE;
-      const size = rollSize(rarity);
-      const coins = computeCoinValue(rarity, size, type);
-      // 이미지 URL → 픽셀아트 변환 (실패 시 절차적 패턴)
-      let pixelArt = null;
-      if (aiData.imageUrl) {
-        pixelArt = await rasterizeImageUrlToPixelArt(
-          aiData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H
-        );
-      }
-      if (!pixelArt) {
-        const stub = { name: aiData.name, type, rarity, size };
-        pixelArt = generateProceduralPixelArtFromItem(
-          stub,
-          hashPixelArtSeed(stub),
-          false
-        );
-      }
-
-      item = { name: aiData.name, type, rarity, size, coins, pixelArt };
-    } else {
-      // 일반·희귀 (또는 에픽·전설 AI 폴백): 절차적 이름 생성 후 스캔 박스로 대기
-      item = rollItemFromRarity(rarity);
-
-      if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
-        startScanPanelCountdown();
-        try {
-          const ctrl2 = new AbortController();
-          const tid2 = setTimeout(() => ctrl2.abort(), 60000);
-          const imgRes = await fetch(`${platformApi}/api/ai/image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
-            body: JSON.stringify({ name: item.name, type: item.type, rarity }),
-            signal: ctrl2.signal,
-          });
-          clearTimeout(tid2);
-          if (imgRes.ok) {
-            const imgData = await imgRes.json();
-            console.log('[AI image]', rarity, imgData.cached ? 'cache hit' : 'generated', imgData.imageUrl ? 'has url' : 'no url');
-            if (imgData.imageUrl) {
-              const art = await rasterizeImageUrlToPixelArt(imgData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
-              if (art) {
-                item.pixelArt = art;
-                commonRareScanImageSuccess = true;
-              }
-            }
-            // 서버가 지급한 코인 총액으로 동기화
-            if (imgData.coins != null) {
-              totalCoins = imgData.coins;
-              updateCoinDisplay();
-            }
-            if (imgData.bonusCoins) {
-              item.scanBonusCoins = imgData.bonusCoins;
-            }
-          } else {
-            const errText = await imgRes.text().catch(() => '');
-            console.error('[AI image] server error', imgRes.status, errText);
-          }
-        } catch (err) {
-          console.error('[AI image] fetch error', err.message || err);
-        } finally {
-          stopScanPanel();
-        }
-      }
-    }
-    // 코인은 서버에서 이미 지급됨 — 클라이언트 단독 지급 제거
-    // grantCommonRareScanImageBonus(item, commonRareScanImageSuccess);
+    const item = rollItemFromRarity(rarity);
     currentItem = item;
 
     await showResult(currentItem);
@@ -1967,7 +1735,6 @@
 
   /* ── 결과 표시 ───────────────────────────────────────── */
   async function showResult(item) {
-    stopScanPanel();
     stopStatusScanning();
     if (statusMsg) statusMsg.classList.add('hidden');
     resultCard.className = `result-card hidden rarity-${item.rarity}`;
@@ -1985,20 +1752,18 @@
     resultRarity.className  = `result-rarity rarity-${item.rarity}`;
     resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
-    resultSize.textContent  = `${item.size}cm`;
-    resultCoins.textContent = item.scanBonusCoins
-      ? `${item.coins} 코인 · 스캔 +${item.scanBonusCoins} 코인`
-      : `${item.coins} 코인`;
+    resultSize.textContent  = `${item.size}kg`;
+    resultCoins.textContent = `${item.coins} 코인`;
     resultCard.classList.remove('hidden');
 
     totalCatches += 1;
     updateCatchesDisplay();
   }
 
-  /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
+  /* ── 서버 저장 + 적재함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
-    // AI 픽셀아트가 있으면 정제해서 전송, 없으면 서버가 자체 생성 (공유 캐시 or 절차적)
+    // 픽셀 패턴이 있으면 정제해서 전송, 없으면 서버가 자체 생성
     const pixelArtForServer = item.pixelArt
       ? serializePixelArt(item.pixelArt)
       : null;
@@ -2055,52 +1820,6 @@
     }
   }
 
-  function stopScanPanel() {
-    if (scanCountdownTimer != null) {
-      clearInterval(scanCountdownTimer);
-      scanCountdownTimer = null;
-    }
-    if (scanPanel) scanPanel.classList.add('hidden');
-    if (scanCountdownLine) scanCountdownLine.classList.remove('hidden');
-    if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
-    if (scanCountNum) scanCountNum.textContent = '20';
-    if (scanOngoingElapsed) scanOngoingElapsed.textContent = '1';
-  }
-
-  function startScanPanelCountdown(seconds = 20) {
-    if (scanCountdownTimer != null) {
-      clearInterval(scanCountdownTimer);
-      scanCountdownTimer = null;
-    }
-    stopStatusScanning();
-    if (statusMsg) statusMsg.classList.add('hidden');
-    if (!scanPanel || !scanCountNum || !scanCountdownLine || !scanOngoingLine) return;
-    scanCountdownLine.classList.remove('hidden');
-    scanOngoingLine.classList.add('hidden');
-    let remaining = seconds;
-    scanCountNum.textContent = String(remaining);
-    scanPanel.classList.remove('hidden');
-    scanCountdownTimer = window.setInterval(() => {
-      remaining -= 1;
-      if (remaining >= 1) {
-        scanCountNum.textContent = String(remaining);
-      } else {
-        if (scanCountdownTimer != null) {
-          clearInterval(scanCountdownTimer);
-          scanCountdownTimer = null;
-        }
-        scanCountdownLine.classList.add('hidden');
-        scanOngoingLine.classList.remove('hidden');
-        let elapsed = 1;
-        if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
-        scanCountdownTimer = window.setInterval(() => {
-          elapsed += 1;
-          if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
-        }, 1000);
-      }
-    }, 1000);
-  }
-
   function showStatus(msg) {
     stopStatusScanning();
     statusMsg.textContent = msg;
@@ -2112,7 +1831,7 @@
     if (state === 'IDLE') goCasting();
   });
 
-  // 보관함: 팔기 버튼 / 그 외 영역 클릭 → 3D 복셀 보기
+  // 적재함: 팔기 버튼 / 그 외 영역 클릭 → 3D 복셀 보기
   if (inventoryList) {
     inventoryList.addEventListener('click', e => {
       if (suppressNextInvListClick) {
@@ -2187,7 +1906,7 @@
     });
   }
 
-  /* 보관함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 */
+  /* 적재함: 마우스 드래그 스크롤 — 세로 스트립 모드는 좌우, 그 외는 세로 */
   (function setupInventoryDragScroll() {
     const wrap = inventoryScrollWrap;
     if (!wrap) return;

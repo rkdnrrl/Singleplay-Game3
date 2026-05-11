@@ -358,7 +358,7 @@ html.minigame-active body {
   animation-duration: 0.85s;
 }
 
-/* Result card (플로우 밖 고정 — 보관함 도킹과 겹침 방지) */
+/* Result card (플로우 밖 고정 — 적재함 도킹과 겹침 방지) */
 .result-card {
   position: fixed;
   left: 50%;
@@ -499,7 +499,7 @@ html.minigame-active body {
   box-shadow: 0 2px 12px rgba(255, 213, 79, 0.35);
 }
 
-/* 3D 복셀 뷰어 (보관함 픽셀) */
+/* 3D 복셀 뷰어 (적재함 픽셀) */
 .voxel-viewer-overlay {
   position: fixed;
   inset: 0;
@@ -677,7 +677,7 @@ html.minigame-active body {
   border-radius: 16px; padding: 0.85rem 1rem; backdrop-filter: blur(6px);
 }
 
-/* 왼쪽 하단 고정 보관함 — flex 컬럼에서 분리되어 낚시 UI 높이·배치에 영향 없음 */
+/* 왼쪽 하단 고정 적재함 — flex 컬럼에서 분리되어 게임 UI 높이·배치에 영향 없음 */
 .log-panel.inventory-dock {
   position: fixed;
   left: max(0.5rem, env(safe-area-inset-left));
@@ -693,7 +693,7 @@ html.minigame-active body {
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.42);
   pointer-events: auto;
 }
-/* 미니게임 중: 페이지 스크롤 차단 시 보관함이 터치를 가로채지 않게 */
+/* 미니게임 중: 페이지 스크롤 차단 시 적재함이 터치를 가로채지 않게 */
 .inventory-dock.minigame-paused {
   pointer-events: none;
 }
@@ -758,7 +758,7 @@ html.minigame-active body {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-/* 보관함 가로 확장 시 한글 이름이 한 글자씩 세로로 쌓이지 않게 */
+/* 적재함 가로 확장 시 한글 이름이 한 글자씩 세로로 쌓이지 않게 */
 .inventory-dock .inv-name {
   overflow-wrap: break-word;
   word-break: keep-all;
@@ -769,7 +769,7 @@ html.minigame-active body {
   overflow-wrap: anywhere;
 }
 
-/* 좁은 화면: HUD·스테이지·미니게임·결과 카드 (보관함은 아래 portrait/landscape에서 분리) */
+/* 좁은 화면: HUD·스테이지·미니게임·결과 카드 (적재함은 아래 portrait/landscape에서 분리) */
 @media (max-width: 520px) {
   .app {
     max-width: 390px;
@@ -845,7 +845,7 @@ html.minigame-active body {
   }
 }
 
-/* 세로 화면: 보관함을 하단 전체 너비로 늘려 텍스트·버튼이 가로로 펼쳐지게 */
+/* 세로 화면: 적재함을 하단 전체 너비로 늘려 텍스트·버튼이 가로로 펼쳐지게 */
 @media (max-width: 520px) and (orientation: portrait) {
   .log-panel.inventory-dock {
     left: max(0.5rem, env(safe-area-inset-left));
@@ -971,7 +971,7 @@ html.minigame-active body {
   white-space: normal;
 }
 
-/* 세로 스트립 + 잡기 미니게임 중: 보관함 숨김 */
+/* 세로 스트립 + 미니게임 중: 적재함 숨김 */
 .inventory-dock.inventory-dock--minigame-hidden {
   visibility: hidden;
   opacity: 0;
