@@ -124,6 +124,31 @@
     },
   };
 
+  /**
+   * 잡기 이름 조합 확장 — 기본 NAME_PARTS 외 수식·종명을 넉넉히 두어
+   * `수식어 + 본체` 한 줄만으로도 대략 1만 가지 안팎의 고유 문자열이 나오게 함.
+   */
+  const NAME_CATCH_MOD_EXT = `
+간섭파 잔광 저궤도 고각도 경계층 등온층 유성성 암점흔 위상수 공진층 희박대기 동위원소 방사청 중력렌즈
+시공리프트 이차원막 삼차원막 빛의잔류 양자얽힘 광속접근 잔류궤도 간섭대 에너지벨트 플라즈마층
+중성대 전하분리 자기장선 중력파속 극초기우주 암흑에너지 우주막대 성간먼지 행성파편 궤도잔류
+위성파편 태양풍층 코로나링 헤일로링 드레이크방정식 페르미면 볼츠만층 라그랑주점 힐구역
+로쉬한계 동심원궤도 타원근점 원격탐사 초분광 적외잔광 근적외선 중적외선 심적외선 초고해상도
+다중주파수 위상배열 간섭계측 동기궤도 정지궤도 극궤도 역행궤도 공전면 경사각 보정궤도
+추력벡터 자세제어 추진제잔류 연료증발 냉각막 열차폐 방열판 임계온도 초전도링 양자점
+나노구조 미세공동 초미세입자 초분진 응축핵 응고층 대류셀 전하중화 이온화층 플라즈마토러스
+`.trim().split(/\s+/).filter(Boolean);
+
+  const NAME_CATCH_BODY_EXT = `
+갈치 병어 노래미 도다리 숭어 뱅어 한치 광어 참돔 돌돔 점볼락 뱀장어 송사리 모래무지 은어 향어 빙어
+송어 납자루 꺽지 꺽다리 피라미 가물치 동자개 자라 쏘가리 얼룩망둑 참굴바리 참종개 수수미꾸리
+민물고기 잉붕어 토종붕어 각시멸 볼락 농어 치어 두만멸 가자미 대구 명태 조기 방어 삼치
+가오리 해마 황새치 벨루가 연어 아귀 우럭 임연수어 붕어 잉어 메기 장어 민어 복어 도미
+참치 청어 고등어 멸치 전어 전갱이 가재 새우 게 조개 거북 물개 물범 해마초 날치 송사리치
+바다뱀 전기뱀장어 은연어 연어치 참황어 황줄돔 줄돔 벵에돔 돌돔치 참돔치 감성돔 돌문어
+쭈꾸미 한치체 문어빙어 오징어새우 꽃게 대게 킹크랩 랍스터 가리비 전복 소라 성게 불가사리
+`.trim().split(/\s+/).filter(Boolean);
+
   /** 이름 토큰 → 픽셀 실루엣 종류 (fish·creature·artifact·crystal·debris) */
   const FRAGMENT_SILHOUETTE = (() => {
     const m = {};
@@ -239,18 +264,23 @@
     return null;
   }
 
-  /** 짧은 1~2어절 위주 (희귀도는 단어 조합 점수로 유지) */
+  /**
+   * 잡기 이름 — 확장 풀(mod×body)로 고유 조합이 대략 1만 가지 안팎.
+   * 희귀도 점수는 기존 NAME_PRESTIGE·NAME_PARTS 단어가 그대로 걸리도록 유지.
+   */
   function generateCatchName() {
     const allCore = SILHOUETTE_TYPES.flatMap((k) => cores(k));
     const allPre = SILHOUETTE_TYPES.flatMap((k) => pres(k));
+    const mods = [...new Set(allPre.concat(NAME_CATCH_MOD_EXT))];
+    const bodies = [...new Set(allCore.concat(NAME_CATCH_BODY_EXT))];
 
     const builders = [
       () => {
-        const pre = pick(allPre);
-        const c = pickDistinct(allCore, pre);
-        return `${pre} ${c}`;
+        const mod = pick(mods);
+        const b = pickDistinct(bodies, mod);
+        return `${mod} ${b}`;
       },
-      () => pick(allCore),
+      () => pick(bodies),
       () => {
         const cat = pick(SILHOUETTE_TYPES);
         const pr = pres(cat);
@@ -267,11 +297,12 @@
     ];
 
     let name = '';
-    for (let guard = 0; guard < 16; guard += 1) {
-      name = pick(builders)();
-      if (name && name.length <= 18) break;
+    for (let guard = 0; guard < 24; guard += 1) {
+      const fn = Math.random() < 0.72 ? builders[0] : pick(builders.slice(1));
+      name = fn();
+      if (name && name.length <= 26) break;
     }
-    return name || `${pick(allPre)} ${pick(allCore)}`;
+    return name || `${pick(mods)} ${pick(bodies)}`;
   }
 
   /** 배경용: 물고기·해양 생명 — 짧은 1~2어절 */
