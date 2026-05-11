@@ -15,11 +15,11 @@
   <div class="app">
     <header class="hud">
       <div class="hud-block hud-coin">
-        <span class="hud-label">🪙 게임머니</span>
+        <span class="hud-label">게임머니</span>
         <span id="coinCount" class="hud-value coin-value">-</span>
       </div>
       <div class="hud-block">
-        <span class="hud-label">🎣 총 포획</span>
+        <span class="hud-label">총 포획</span>
         <span id="totalCatches" class="hud-value">0</span>
       </div>
     </header>
@@ -28,13 +28,13 @@
       <div class="planet" aria-hidden="true"></div>
 
       <div class="fisher-scene">
-        <div class="astronaut">🧑‍🚀</div>
+        <div class="astronaut" aria-hidden="true"></div>
         <div class="beam-line" id="beamLine"></div>
-        <div class="lure" id="lure">🔵</div>
+        <div class="lure" id="lure" aria-hidden="true"></div>
       </div>
 
       <!-- 상태별 UI -->
-      <button class="cast-btn" id="castBtn" type="button">🎣 우주 낚시 시작</button>
+      <button class="cast-btn" id="castBtn" type="button">우주 낚시 시작</button>
 
       <div class="status-msg hidden" id="statusMsg"></div>
 
@@ -60,7 +60,7 @@
   <!-- 보관함: 뷰포트 고정, 메인 게임 플로우·레이아웃과 분리 -->
   <section class="log-panel inventory-dock" id="inventoryDock" aria-label="보관함">
     <div class="inv-header">
-      <h2 class="log-title">📦 보관함</h2>
+      <h2 class="log-title">보관함</h2>
       <button class="sell-all-btn hidden" id="sellAllBtn" type="button"></button>
     </div>
     <div class="inv-scroll-wrap" id="inventoryScrollWrap">
@@ -112,13 +112,12 @@
       <span class="result-rarity" id="resultRarity"></span>
       <span class="result-name" id="resultName"></span>
       <span class="result-size" id="resultSize"></span>
-      <span class="result-added">📦 보관함에 추가됨</span>
+      <span class="result-added">보관함에 추가됨</span>
     </div>
     <div class="result-coins" id="resultCoins"></div>
   </div>
 
   <script src="config.js"></script>
-  <script src="emoji-pool.js"></script>
   <script defer src="game.js"></script>
 </body>
 </html>

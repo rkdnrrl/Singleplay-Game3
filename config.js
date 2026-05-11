@@ -9,10 +9,7 @@
   if (typeof window.__ALP_PLATFORM_API__ === 'undefined') {
     window.__ALP_PLATFORM_API__ = '';
   }
-  // Twemoji 72×72 PNG 베이스 URL (끝에 / 권장). 미설정 시 game.js 기본 CDN 사용.
-  // window.__TWEMOJI_CDN_72__ = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/';
-  //
-  // 이름에 키워드가 포함되면 해당 URL 이미지를 이모지보다 먼저 픽셀아트로 씀 (PNG/WebP 권장).
+  // 이름에 키워드가 포함되면 해당 URL 이미지를 절차적 패턴보다 먼저 픽셀아트로 씀 (PNG/WebP 권장).
   // 같은 폴더에 두면 CORS 없음. 외부 URL은 이미지 서버가 CORS 허용해야 함.
   // window.__CATCH_SPRITE_RULES__ = [
   //   { kw: '피라냐', url: '/assets/sprites/piranha.png' },

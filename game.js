@@ -239,77 +239,42 @@
     return null;
   }
 
-  /** 자연스러운 한국어 문장형 (예: 포자가 된 피라냐) */
+  /** 짧은 1~2어절 위주 (희귀도는 단어 조합 점수로 유지) */
   function generateCatchName() {
-    const cf = cores('fish');
-    const cc = cores('creature');
-    const ca = cores('artifact');
-    const cr = cores('crystal');
-    const cd = cores('debris');
-    const pf = pres('fish');
-    const pc = pres('creature');
-    const pa = pres('artifact');
-    const pr = pres('crystal');
-    const pd = pres('debris');
-    const sf = posts('fish');
-    const sr = posts('crystal');
-    const allLiving = cf.concat(cc);
-    const allPre = pf.concat(pc, pa, pr, pd);
-    const artCryDeb = ca.concat(cr, cd);
+    const allCore = SILHOUETTE_TYPES.flatMap((k) => cores(k));
+    const allPre = SILHOUETTE_TYPES.flatMap((k) => pres(k));
 
     const builders = [
       () => {
-        const a = pick(cc);
-        const b = pickDistinct(cf, a);
-        return `${a}가 된 ${b}`;
+        const pre = pick(allPre);
+        const c = pickDistinct(allCore, pre);
+        return `${pre} ${c}`;
+      },
+      () => pick(allCore),
+      () => {
+        const cat = pick(SILHOUETTE_TYPES);
+        const pr = pres(cat);
+        const co = cores(cat);
+        return `${pick(pr)} ${pick(co)}`;
       },
       () => {
-        const a = pick(cf);
-        const b = pickDistinct(cc, a);
-        return `${a}가 된 ${b}`;
+        const cat = pick(SILHOUETTE_TYPES);
+        const c = pick(cores(cat));
+        const tails = namePartsTrim(NAME_PARTS[cat].post);
+        if (tails.length === 0 || Math.random() > 0.32) return c;
+        return `${c} ${pick(tails)}`;
       },
-      () => `${pick(allPre)}의 ${pick(allLiving)}`,
-      () => {
-        const mod = pick(pc.concat(pf));
-        const b = pick(artCryDeb);
-        return `${mod}형 ${b}`;
-      },
-      () => `${pick(cc)} 같은 ${pick(cf)}`,
-      () => `${pick(pa.concat(pd, pr))}에서 온 ${pick(allLiving)}`,
-      () => `${pick(ca)}에 붙은 ${pick(allLiving)}`,
-      () => `${pick(cr)} 속의 ${pick(allLiving)}`,
-      () => `${pick(ca)}에 갇힌 ${pick(allLiving)}`,
-      () => `${pick(cf)}와 숨어든 ${pick(cd)}`,
-      () => `${pick(cf)} 뒤에 숨은 ${pick(ca)}`,
-      () => `조각난 ${pick(ca)}의 일부`,
-      () => `버려진 ${pick(ca.concat(cd))}`,
-      () => `녹슨 ${pick(cd)}`,
-      () => `우주에서 떨어진 ${pick(ca.concat(cd))}`,
-      () => {
-        const pre = pick(pf);
-        const c = pickDistinct(cf, pre);
-        const po = sf.length ? pick(sf) : '';
-        return po ? `${pre} ${c} ${po}` : `${pre} ${c}`;
-      },
-      () => {
-        const pre = pick(pr);
-        const c = pickDistinct(cr, pre);
-        const po = sr.length ? pick(sr) : '';
-        return po ? `${pre} ${c} ${po}` : `${pre} ${c}`;
-      },
-      () => `${pick(pd)} ${pick(cd)}`,
-      () => `${pick(pc)} ${pick(cc)}`,
     ];
 
     let name = '';
     for (let guard = 0; guard < 16; guard += 1) {
       name = pick(builders)();
-      if (name && name.length <= 42) break;
+      if (name && name.length <= 18) break;
     }
-    return name || '미상 유체';
+    return name || `${pick(allPre)} ${pick(allCore)}`;
   }
 
-  /** 배경용: 물고기·해양 크리처 단어만 (우주 잔해·유물 접두는 제외) */
+  /** 배경용: 물고기·해양 생명 — 짧은 1~2어절 */
   function generateBackgroundMarineName() {
     const cf = cores('fish');
     const ccAll = cores('creature');
@@ -319,45 +284,18 @@
     const cc = marineCreature.length ? marineCreature : ccAll;
     const pf = pres('fish');
     const pc = pres('creature');
-    const sf = posts('fish');
-    const pre = pf.concat(pc);
-    const living = cf.concat(cc);
-
-    const whaleLike = ['돌고래', '범고래'];
 
     const builders = [
-      () => {
-        const a = pick(cc);
-        const b = pickDistinct(cf, a);
-        return `${a}가 된 ${b}`;
-      },
-      () => {
-        const a = pick(cf);
-        const b = pickDistinct(cc, a);
-        return `${a}가 된 ${b}`;
-      },
-      () => `${pick(whaleLike)}가 된 ${pick(cf)}`,
-      () => `${pick(whaleLike)} 같은 ${pick(cf)}`,
-      () => `${pick(pre)}의 ${pick(living)}`,
-      () => `${pick(cc)} 같은 ${pick(cf)}`,
-      () => `${pick(pf.concat(pc))}에서 온 ${pick(living)}`,
-      () => {
-        const mod = pick(pc.concat(pf));
-        const b = pick(cf);
-        return `${mod}형 ${b}`;
-      },
-      () => {
-        const pre1 = pick(pf);
-        const c = pickDistinct(cf, pre1);
-        const po = sf.length ? pick(sf) : '';
-        return po ? `${pre1} ${c} ${po}`.trim() : `${pre1} ${c}`;
-      },
+      () => pick(cf),
+      () => `${pick(pf)} ${pick(cf)}`,
+      () => `${pick(pc)} ${pick(cf)}`,
+      () => `${pick(cf)} ${pick(cc)}`,
     ];
 
     let name = '';
     for (let guard = 0; guard < 16; guard += 1) {
       name = pick(builders)();
-      if (name && name.length <= 42) break;
+      if (name && name.length <= 16) break;
     }
     return name || `${pick(pf)} ${pick(cf)}`;
   }
@@ -485,15 +423,9 @@
   /* ── 픽셀 스프라이트 (DB JSON + 화면 표시) ───────────── */
   /** 빈 칸 — 페이지 배경과 동일(#08081a)이라 밝은 테두리·박스가 안 보임 */
   const PIXEL_MAT = '#08081a';
-  /** 인벤·이모지 샘플링 그리드 */
+  /** 인벤·화면용 픽셀 샘플링 그리드 */
   const PIXEL_GRID_W = 32;
   const PIXEL_GRID_H = 32;
-  /** Twemoji 72×72 PNG 베이스 (파일명 = 유니코드 코드포인트 하이픈 연결). `window.__TWEMOJI_CDN_72__`로 덮어쓰기 가능 */
-  const TWEMOJI_CDN_72 =
-    (typeof window !== 'undefined' && window.__TWEMOJI_CDN_72__) ||
-    'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/';
-  const TWEMOJI_BASE = TWEMOJI_CDN_72.endsWith('/') ? TWEMOJI_CDN_72 : `${TWEMOJI_CDN_72}/`;
-
   function pixelPaintColor(hex, cidx) {
     if (cidx === 0) return PIXEL_MAT;
     if (!hex || typeof hex !== 'string') return PIXEL_MAT;
@@ -522,7 +454,7 @@
     return h >>> 0;
   }
 
-  /** 픽셀: 같은 이름이면 동일 이모지·동일 샘플링 */
+  /** 픽셀: 같은 이름이면 동일 패턴·동일 샘플링 */
   function hashPixelArtSeed(item) {
     const s = `${String(item.name || '')}\0fish`;
     let h = 2166136261;
@@ -533,295 +465,68 @@
     return h >>> 0;
   }
 
-  /**
-   * 유니코드 물고기 글리프(🐟🐠🐡)만으로는 겹침이 크므로, 낚시·바다·회·이과 등으로 후보를 넓힘.
-   * 키워드마다 시드가 달라 물고기 종류별로 다른 조합이 나옴.
-   */
-  const FISH_KIND_DIVERSITY_POOL = [
-    '🐟', '🐠', '🐡', '🎏', '🎣', '🍣', '🫧', '🌊', '🪸', '🐚', '🥫', '⚓', '🏝️', '🎐',
-  ];
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function next() {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), a | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
 
-  function fishEmojiPalette(keyword, mustInclude) {
-    const raw = mustInclude == null ? [] : Array.isArray(mustInclude) ? mustInclude : [mustInclude];
-    const out = [];
-    const seen = new Set();
-    for (let i = 0; i < raw.length; i += 1) {
-      const e = raw[i];
-      if (e && !seen.has(e)) {
-        seen.add(e);
-        out.push(e);
+  /**
+   * 스프라이트 URL이 없을 때: 이름·시드 기반 32×32 추상 패턴.
+   * marineBias 가 true 면 배경 플로터(해양)용 청록 톤.
+   */
+  function generateProceduralPixelArtFromItem(item, salt, marineBias) {
+    const w = PIXEL_GRID_W;
+    const h = PIXEL_GRID_H;
+    const seed0 = hashPixelArtSeed(item);
+    const seed = (seed0 ^ (salt >>> 0) ^ (marineBias ? 0x51ed4eae : 0)) >>> 0;
+    const rng = mulberry32(seed);
+
+    const palette = [PIXEL_MAT];
+    const nColors = 10 + ((seed >>> 3) % 5);
+    for (let ci = 0; ci < nColors; ci += 1) {
+      let r; let g; let b;
+      if (marineBias) {
+        r = (30 + rng() * 120) | 0;
+        g = (80 + rng() * 100) | 0;
+        b = (120 + rng() * 135) | 0;
+      } else {
+        r = (80 + rng() * 160) | 0;
+        g = (40 + rng() * 140) | 0;
+        b = (140 + rng() * 115) | 0;
       }
+      palette.push(hexFromRgbByte(r, g, b));
     }
-    let h = 2166136261;
-    const s = String(keyword);
-    for (let i = 0; i < s.length; i += 1) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    let salt = h >>> 0;
-    let guard = 0;
-    while (out.length < 9 && guard < 96) {
-      guard += 1;
-      const idx = salt % FISH_KIND_DIVERSITY_POOL.length;
-      salt = Math.imul(salt + idx + 1, 0x9e3779b1) >>> 0;
-      const e = FISH_KIND_DIVERSITY_POOL[idx];
-      if (!seen.has(e)) {
-        seen.add(e);
-        out.push(e);
-      }
-    }
-    return out;
-  }
 
-  /**
-   * 이름 키워드 → 이모지.
-   * pickEmojiForItem 은 이름 안에서 가장 늦게 끝나는 매칭(동률이면 더 긴 키워드)을 쓴다.
-   * 값이 배열이면 이름·시드로 그중 하나를 골라 같은 키워드도 다양하게 보이게 함.
-   */
-  const EMOJI_BY_NAME_KEYWORD = [
-    ['암흑물질', ['🌑', '🕳️', '✨']],
-    ['블랙홀', ['🕳️', '🌌', '⚫']],
-    ['평행우주', ['🌌', '🔮', '🌀']],
-    ['다차원', ['🧊', '🔮', '🌌']],
-    ['반중력', ['🎈', '☄️', '✨']],
-    ['플라즈마', ['⚡', '✨', '🔥']],
-    ['펄사', ['✨', '🌟', '💫']],
-    ['중성자', ['⚛️', '✨', '🔵']],
-    ['광자', ['💡', '✨', '⭐']],
-    ['허블', ['🔭', '🛰️', '🌌']],
-    ['이온', ['⚡', '✨', '💠']],
-    ['퀀텀', ['✨', '🔮', '♾️']],
-    ['오메가', ['🔯', '🔮', '🌟']],
-    ['다크매터', ['🌑', '✨', '🌌']],
-    ['플랑크톤', ['🦠', '🌿', '🔬']],
-    ['기생체', ['🦠', '🐛', '🔬']],
-    ['포자', ['🍄', '🦠', '🌫️']],
-    ['유기체', ['🧬', '🦠', '🐾']],
-    ['위성조각', ['🛰️', '💥', '🪨']],
-    ['컨테이너', ['📦', '🗃️', '🛢️']],
-    ['엔진', ['⚙️', '🔧', '🚀']],
-    ['패널', ['🔲', '📟', '💠']],
-    ['드론', ['🛸', '📡', '🤖']],
-    ['프리즘', ['🔮', '💎', '🌈']],
-    ['클러스터', ['✨', '💎', '🌟']],
-    ['양자', ['⚛️', '✨', '🔮']],
-    ['샤드', ['💎', '🧩', '🔷']],
-    ['프로토타입', ['⚗️', '🔧', '🧪']],
-    ['인공물', ['🤖', '🏭', '⚙️']],
-    ['회로', ['🔌', '💡', '🧩']],
-    ['모듈', ['🧩', '📦', '🔧']],
-    ['석판', ['🪨', '📜', '🏛️']],
-    ['파편', ['💥', '🧩', '🪨']],
-    ['냉장고', ['🧊', '❄️', '🧃']],
-    ['멸망한 행성', ['🪐', '💀', '🌋']],
-    ['성간', ['🌌', '🛸', '☄️']],
-    ['고대', ['🏺', '🗿', '🏛️']],
-    ['외계', ['👽', '🛸', '🌠']],
-    ['조각난', ['🧩', '💔', '🪨']],
-    ['불완전', ['🧩', '⚠️', '🔧']],
-    ['전쟁터', ['💥', '⚔️', '🛡️']],
-    ['버려진', ['🗑️', '🏚️', '📦']],
-    ['궤도', ['🛰️', '🌍', '🌙']],
-    ['우주', ['🌌', '🚀', '🛸']],
-    ['은하', ['🌌', '✨', '🌀']],
-    ['솔라', ['☀️', '⚡', '🌞']],
-    ['돌고래', '🐬'],
-    ['범고래', '🐋'],
-    ['쭈꾸미', '🐙'],
-    ['오징어', '🦑'],
-    ['문어', '🐙'],
-    ['해파리', '🪼'],
-    ['낙지', '🐙'],
-    ['병어', fishEmojiPalette('병어', ['🐠'])],
-    ['전갱이', fishEmojiPalette('전갱이', ['🐟'])],
-    ['전어', fishEmojiPalette('전어', ['🐟'])],
-    ['임연수어', fishEmojiPalette('임연수어', ['🐟'])],
-    ['붕어', fishEmojiPalette('붕어', ['🐠', '🐟'])],
-    ['잉어', fishEmojiPalette('잉어', ['🐟', '🐠'])],
-    ['메기', fishEmojiPalette('메기', ['🐟', '🐠', '🔱'])],
-    ['장어', fishEmojiPalette('장어', ['🐍', '🐟'])],
-    ['민어', fishEmojiPalette('민어', ['🐟'])],
-    ['복어', fishEmojiPalette('복어', ['🐡'])],
-    ['도미', fishEmojiPalette('도미', ['🐠', '🐟'])],
-    ['참돔', fishEmojiPalette('참돔', ['🐠'])],
-    ['대구', fishEmojiPalette('대구', ['🐟', '🧊'])],
-    ['명태', fishEmojiPalette('명태', ['🐟', '🥶'])],
-    ['조기', fishEmojiPalette('조기', ['🐟', '🌅'])],
-    ['방어', fishEmojiPalette('방어', ['🐟', '🛡️', '🐠'])],
-    ['삼치', fishEmojiPalette('삼치', ['🐟', '🗡️'])],
-    ['가오리', fishEmojiPalette('가오리', ['🐡', '🌊'])],
-    ['해마', fishEmojiPalette('해마', ['🐠', '🔱'])],
-    ['상어', '🦈'],
-    ['황새치', fishEmojiPalette('황새치', ['🐟', '🗡️'])],
-    ['벨루가', fishEmojiPalette('벨루가', ['🐋', '🤍'])],
-    ['고래', fishEmojiPalette('고래', ['🐋', '🐳'])],
-    ['물고기', fishEmojiPalette('물고기', ['🐟', '🐠', '🐡'])],
-    ['물개', '🦭'],
-    ['거북', '🐢'],
-    ['조개', '🦪'],
-    ['새우', '🦐'],
-    ['가재', '🦞'],
-    ['게', '🦀'],
-    ['민물', fishEmojiPalette('민물', ['🐠', '🐟', '🏞️'])],
-    ['바다', ['🌊', '🏖️', '🐚']],
-    ['수중', fishEmojiPalette('수중', ['🐟', '🫧', '🌊'])],
-    ['유체', fishEmojiPalette('유체', ['🫧', '💧', '🌊'])],
-    ['포식자', fishEmojiPalette('포식자', ['🦈', '🐙', '🦑'])],
-    ['피라냐', '🐠'],
-    ['멸치', fishEmojiPalette('멸치', ['🐟', '🐠', '🎣'])],
-    ['청어', fishEmojiPalette('청어', ['🐟', '🐠', '🥫'])],
-    ['고등어', fishEmojiPalette('고등어', ['🐟', '🐠', '🐡'])],
-    ['가자미', fishEmojiPalette('가자미', ['🐡', '🐟', '🐠'])],
-    ['우럭', fishEmojiPalette('우럭', ['🐟', '🐠', '🎣'])],
-    ['아귀', fishEmojiPalette('아귀', ['🐟', '🐡', '😈'])],
-    ['연어', fishEmojiPalette('연어', ['🐟', '🐠', '🧡'])],
-    ['참치', fishEmojiPalette('참치', ['🐟', '🐠', '🍣'])],
-    ['지느러미', fishEmojiPalette('지느러미', ['🐟', '🐠', '🐡'])],
-    ['성운', ['🌌', '✨', '🌠']],
-    ['네뷸라', ['🌌', '🌠', '✨']],
-    ['결정', ['💎', '🔷', '✨']],
-    ['코어', ['🔮', '💠', '⚛️']],
-    ['유물', ['🏺', '🗿', '⚱️']],
-    ['잔해', ['🛰️', '💥', '🧩']],
-    ['쓰레기', ['🗑️', '♻️', '📦']],
-    ['더미', ['📦', '🧱', '🗿']],
-    ['녹슨', ['🔩', '⚙️', '🧰']],
-    ['냉동', ['🧊', '❄️', '🥶']],
-    ['행성', ['🪐', '🌍', '🌏', '🌑']],
-    ['위성', ['🛰️', '📡', '🌙']],
-    ['번식군', ['🐣', '🧬', '🔬']],
-    ['군체', ['🦠', '🐜', '🧫']],
-    ['개체', ['🧬', '🔬', '📋']],
-    ['미기록', ['❓', '📇', '🔍']],
-    ['표본', ['🧫', '📌', '🔬']],
-    ['아종', ['🧬', '🦠', '🐾']],
-    ['α형', ['🔺', '⚛️', '✳️']],
-    ['β형', ['🔻', '⚛️', '✴️']],
-    ['(손상)', ['⚠️', '🩹', '💔']],
-    ['(미기록)', ['❔', '📝', '🔭']],
-    ['(공명)', ['📳', '〰️', '🔔']],
-    ['MK-Ⅱ', ['🔧', '⚙️', '🆕']],
-    ['묶음', ['📦', '🪢', '🧶']],
-    ['우주에서', ['☄️', '🌠', '🚀']],
-    ['떨어진', ['💫', '☄️', '🌠']],
-    ['숨어든', ['🫥', '👁️', '🌑']],
-    ['에 갇힌', ['🔒', '📦', '🧊']],
-    ['에 붙은', ['🧲', '📎', '💠']],
-    [' 속의', ['🫧', '💠', '🔮']],
-    ['에서 온', ['🛬', '🌊', '✨']],
-    ['가 된', ['✨', '💫', '🌀']],
-    ['형 ', ['🔷', '⚙️', '🧩']],
-    [' 같은 ', ['🪞', '✨', '♊']],
-    ['의 일부', ['🧩', '📄', '✂️']],
-    [' 뒤에 ', ['🌓', '👤', '🌑']],
-    ['와 숨어든', ['➕', '🔗', '✨']],
-  ];
+    const cells = new Array(w * h);
+    const cx = (w - 1) / 2;
+    const cy = (h - 1) / 2;
+    const maxR = Math.min(w, h) * 0.42;
 
-  /**
-   * 이름 끝쪽 키워드(예: 돌고래)가 이기면 안 되는 본체 — `피라냐가 된 돌고래` 등.
-   * 배열 앞이 더 우선(둘 다 있으면 앞 키워드).
-   */
-  const EMOJI_OVERRIDE_IF_PRESENT = ['피라냐'];
-
-  /** `emoji-pool.js` 미로드·용량 부족 시에만 사용 (약 130개) */
-  const EMOJI_FALLBACK_COSMIC_LEGACY = [
-    '🐠', '🐡', '🦑', '🐙', '🪼', '🐬', '🐋', '🐳', '🐟', '🦈', '🌊', '✨', '🌀', '🌌', '🌠',
-    '🌙', '☄️', '🪐', '⭐', '🌟', '💫', '🛸', '👾', '🤖', '🛰️', '🚀', '🌑', '🔭', '⚡', '🧬',
-    '🦠', '🫧', '🎣', '🔱', '🏝️', '🐚', '🪸', '🦭', '🌃', '🔮', '💎', '🧿', '☀️', '🌈', '🏺',
-    '🗿', '⚗️', '🧪', '🔧', '📡', '💥', '🧩', '🪨', '🌿', '🍄', '🌫️', '🐛', '🐾', '🎈', '♾️',
-    '💠', '🔷', '🌋', '⚔️', '🛡️', '🏚️', '🌍', '🌞', '🥫', '🍣', '🧃', '❄️', '🧊', '🔌', '📦',
-    '🎇', '🎆', '🌉', '🌁', '🫎', '🦌', '🦬', '🪽', '🔥', '🫀', '🧠', '👁️', '🦴', '🕯️', '🧊',
-    '🎭', '🪄', '🧙', '🌵', '🪐', '🛎️', '⌛', '⏳', '🧭', '🗺️', '🎪', '🎯', '🎲', '🪅', '🎨',
-    '🦋', '🐝', '🪲', '🦗', '🕷️', '🦂', '🐉', '🦕', '🦖', '🐌', '🦫', '🦔', '🦇', '🐈', '🐕',
-    '🦮', '🐩', '🦤', '🦚', '🦜', '🐿️', '🦦', '🪿', '🫏', '🫐', '🍇', '🍊', '🍋', '🍌', '🍉',
-  ];
-
-  const EMOJI_FALLBACK_MARINE_LEGACY = [
-    '🐠', '🐡', '🐟', '🐬', '🐋', '🐳', '🦈', '🪼', '🐙', '🦑', '🌊', '🦭', '🐚', '🪸', '🦐',
-    '🦞', '🦀', '🦪', '🐢', '🫧', '🏖️', '🎣', '🔱', '🌴', '🐊', '🦦', '🌅', '🌙', '⭐', '✨',
-    '🐧', '🦆', '🪿', '🐦', '🌧️', '💧', '🧜', '⚓', '🚢', '🛟', '🏄', '🤿', '🍣', '🥫', '🎏',
-    '🌺', '🌻', '🌼', '🌷', '🪷', '🏝️', '🌀', '💦', '🧊', '🏊', '🚣', '🎐', '🌪️', '⛵', '🚤',
-    '🛥️', '🌫️', '🐚', '🪸', '🦈', '🐋', '🐬', '🐟', '🐠', '🐡', '🦑', '🐙', '🪼', '🦭', '🤿',
-  ];
-
-  const EMOJI_POOL_LARGE =
-    typeof window !== 'undefined' &&
-    Array.isArray(window.__GAME_EMOJI_POOL__) &&
-    window.__GAME_EMOJI_POOL__.length >= 10000
-      ? window.__GAME_EMOJI_POOL__
-      : null;
-
-  const EMOJI_FALLBACK_COSMIC = EMOJI_POOL_LARGE || EMOJI_FALLBACK_COSMIC_LEGACY;
-  const EMOJI_FALLBACK_MARINE = EMOJI_POOL_LARGE || EMOJI_FALLBACK_MARINE_LEGACY;
-
-  function mixSeedForEmoji(name, seed) {
-    let h = seed >>> 0;
-    const s = String(name);
-    for (let i = 0; i < s.length; i += 1) {
-      h = Math.imul(h ^ s.charCodeAt(i), 0x9e3779b1);
-    }
-    h ^= Math.imul(seed ^ 0xa5a5a5a5, 0xc2b2ae35);
-    h = (h ^ (h >>> 13)) >>> 0;
-    h = Math.imul(h, 0x85ebca6b);
-    return h >>> 0;
-  }
-
-  function pickFromKeywordEmoji(entry, name, seed) {
-    const em = entry[1];
-    if (typeof em === 'string') return em;
-    const arr = em;
-    if (!arr || arr.length === 0) return '🐟';
-    const h = mixSeedForEmoji(String(entry[0]) + '\0' + name, seed);
-    const h2 = mixSeedForEmoji(name + '\0' + String(seed), seed ^ 0xdeadbeef);
-    return arr[(h + h2) % arr.length];
-  }
-
-  function pickEmojiForItem(name, seed, marineOnly) {
-    const n = String(name || '');
-    const pool = marineOnly ? EMOJI_FALLBACK_MARINE : EMOJI_FALLBACK_COSMIC;
-    for (let oi = 0; oi < EMOJI_OVERRIDE_IF_PRESENT.length; oi += 1) {
-      const okw = EMOJI_OVERRIDE_IF_PRESENT[oi];
-      if (!okw || n.indexOf(okw) < 0) continue;
-      for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
-        const entry = EMOJI_BY_NAME_KEYWORD[i];
-        if (entry[0] === okw) {
-          return pickFromKeywordEmoji(entry, n, seed);
+    for (let py = 0; py < h; py += 1) {
+      for (let px = 0; px < w; px += 1) {
+        const d = Math.hypot(px - cx, py - cy);
+        const edge = d / maxR;
+        const noise = rng() * 0.55 + (1 - edge) * 0.45;
+        if (noise < 0.28 + edge * 0.35) {
+          cells[py * w + px] = 0;
+        } else {
+          cells[py * w + px] = 1 + ((rng() * (palette.length - 1)) | 0);
         }
       }
     }
-    let bestEntry = null;
-    let bestEnd = -1;
-    let bestKwLen = -1;
-    let bestI = Infinity;
-    for (let i = 0; i < EMOJI_BY_NAME_KEYWORD.length; i += 1) {
-      const entry = EMOJI_BY_NAME_KEYWORD[i];
-      const kw = entry[0];
-      const pos = n.lastIndexOf(kw);
-      if (pos < 0) continue;
-      const end = pos + kw.length;
-      const kwLen = kw.length;
-      if (
-        end > bestEnd ||
-        (end === bestEnd && kwLen > bestKwLen) ||
-        (end === bestEnd && kwLen === bestKwLen && i < bestI)
-      ) {
-        bestEnd = end;
-        bestKwLen = kwLen;
-        bestI = i;
-        bestEntry = entry;
-      }
-    }
-    if (bestEntry) return pickFromKeywordEmoji(bestEntry, n, seed);
-    const h = mixSeedForEmoji(n, seed);
-    const h2 = mixSeedForEmoji(n + '\0fb', ~seed >>> 0);
-    const idx = (h ^ h2) % pool.length;
-    return pool[idx];
+
+    return { w, h, palette, cells, fromEmoji: false };
   }
 
   /**
-   * 사용자 제공 PNG/WebP 등 — 픽셀아트로 샘플링해 이모지와 동일 파이프라인에 태움.
+   * 사용자 제공 PNG/WebP 등 — URL 이미지를 픽셀 그리드로 샘플링.
    * `window.__CATCH_SPRITE_RULES__ = [{ kw: '피라냐', url: 'https://.../x.png' }, ...]`
-   * 매칭 규칙은 pickEmojiForItem 과 같음(이름 안에서 더 오른쪽에서 끝나는 kw 우선).
+   * 매칭은 이름 안에서 더 오른쪽에서 끝나는 kw 우선(동률이면 더 긴 kw).
    * 다른 도메인 이미지는 서버에서 CORS(Access-Control-Allow-Origin)가 열려 있어야 함.
    */
   function pickSpriteUrlForItem(name) {
@@ -897,176 +602,6 @@
     return best;
   }
 
-  function emojiToTwemojiFilename(emoji) {
-    if (emoji == null || typeof emoji !== 'string' || emoji.length === 0) return '';
-    const parts = [];
-    for (let i = 0; i < emoji.length; ) {
-      const cp = emoji.codePointAt(i);
-      parts.push(cp.toString(16));
-      i += cp > 0xffff ? 2 : 1;
-    }
-    return parts.length ? `${parts.join('-')}.png` : '';
-  }
-
-  function loadImageCrossOrigin(url) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-  }
-
-  /** 고해상도 캔버스 → 그리드 픽셀 (이모지·Twemoji 공통) */
-  function downsampleHiCanvasToEmojiPixelArt(hi, outW, outH) {
-    const empty = { w: outW, h: outH, palette: [PIXEL_MAT], cells: new Array(outW * outH).fill(0), fromEmoji: true };
-    const lo = document.createElement('canvas');
-    lo.width = outW;
-    lo.height = outH;
-    const lctx = lo.getContext('2d');
-    if (!lctx) return empty;
-    lctx.imageSmoothingEnabled = false;
-    lctx.drawImage(hi, 0, 0, outW, outH);
-
-    const data = lctx.getImageData(0, 0, outW, outH).data;
-    const palette = [PIXEL_MAT];
-    const keyToIdx = new Map();
-    keyToIdx.set(PIXEL_MAT, 0);
-    const maxPaletteEntries = 36;
-    const cells = new Array(outW * outH);
-
-    for (let py = 0; py < outH; py += 1) {
-      for (let px = 0; px < outW; px += 1) {
-        const di = (py * outW + px) * 4;
-        const r = data[di];
-        const g = data[di + 1];
-        const b = data[di + 2];
-        const a = data[di + 3];
-        if (colorLikeMat(r, g, b, a)) {
-          cells[py * outW + px] = 0;
-          continue;
-        }
-        const k = quantRgbKey(r, g, b);
-        let cidx = keyToIdx.get(k);
-        if (cidx == null) {
-          if (palette.length < maxPaletteEntries) {
-            const parts = k.split(',').map((x) => parseInt(x, 10));
-            const hex = hexFromRgbByte(parts[0], parts[1], parts[2]);
-            cidx = palette.length;
-            palette.push(hex);
-            keyToIdx.set(k, cidx);
-          } else {
-            cidx = nearestPaletteColorIdx(r, g, b, palette);
-            keyToIdx.set(k, cidx);
-          }
-        }
-        cells[py * outW + px] = cidx;
-      }
-    }
-
-    return { w: outW, h: outH, palette, cells, fromEmoji: true };
-  }
-
-  function emojiRasterTransformParams(transformSeed) {
-    const s = (transformSeed != null ? transformSeed >>> 0 : 0x5bd1e995) >>> 0;
-    return {
-      mirror: (s & 1) !== 0,
-      ox: ((s >>> 1) & 7) - 3,
-      oy: ((s >>> 4) & 7) - 3,
-      drawScale: 0.92 + ((s >>> 7) & 15) / 100,
-      hueDeg: ((s >>> 11) & 0x1f) - 15,
-      rot: ((((s >>> 16) & 7) - 3) * Math.PI) / 180,
-      sat: 1.06 + ((s >>> 21) & 0xf) / 22,
-      con: 0.97 + ((s >>> 25) & 7) / 45,
-    };
-  }
-
-  /** 시스템 폰트 이모지 (Twemoji 로드 실패·오프라인 폴백) */
-  function rasterizeEmojiToPixelArtFillText(emoji, w, h, transformSeed) {
-    const empty = { w, h, palette: [PIXEL_MAT], cells: new Array(w * h).fill(0), fromEmoji: true };
-    const scaleUp = 4;
-    const hi = document.createElement('canvas');
-    hi.width = w * scaleUp;
-    hi.height = h * scaleUp;
-    const hctx = hi.getContext('2d');
-    if (!hctx) return empty;
-
-    const t = emojiRasterTransformParams(transformSeed);
-    hctx.fillStyle = PIXEL_MAT;
-    hctx.fillRect(0, 0, hi.width, hi.height);
-
-    const cx = hi.width / 2;
-    const cy = hi.height / 2;
-    const fontPx = Math.max(10, Math.floor(hi.height * 0.72));
-
-    hctx.save();
-    hctx.translate(cx + t.ox, cy + t.oy);
-    hctx.rotate(t.rot);
-    hctx.scale(t.mirror ? -t.drawScale : t.drawScale, t.drawScale);
-    const filt = [];
-    if (t.hueDeg !== 0) filt.push(`hue-rotate(${t.hueDeg}deg)`);
-    filt.push(`saturate(${t.sat.toFixed(3)})`);
-    filt.push(`contrast(${t.con.toFixed(3)})`);
-    hctx.filter = filt.join(' ');
-    hctx.font = `${fontPx}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
-    hctx.textAlign = 'center';
-    hctx.textBaseline = 'middle';
-    hctx.fillText(emoji, 0, 0);
-    hctx.restore();
-
-    return downsampleHiCanvasToEmojiPixelArt(hi, w, h);
-  }
-
-  /** Twemoji CDN PNG만 시도 (성공 시 픽셀아트, 실패 시 null) */
-  async function rasterizeEmojiFromTwemojiUrl(emoji, w, h, transformSeed) {
-    const file = emojiToTwemojiFilename(emoji);
-    if (!file) return null;
-    const img = await loadImageCrossOrigin(TWEMOJI_BASE + file);
-    if (!img || !img.naturalWidth) return null;
-
-    const scaleUp = 4;
-    const hi = document.createElement('canvas');
-    hi.width = w * scaleUp;
-    hi.height = h * scaleUp;
-    const hctx = hi.getContext('2d');
-    if (!hctx) return null;
-
-    const t = emojiRasterTransformParams(transformSeed);
-    hctx.fillStyle = PIXEL_MAT;
-    hctx.fillRect(0, 0, hi.width, hi.height);
-
-    const cx = hi.width / 2;
-    const cy = hi.height / 2;
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-    const targetH = hi.height * 0.72;
-    const imgScale = targetH / ih;
-    const dw = iw * imgScale;
-    const dh = ih * imgScale;
-
-    hctx.save();
-    hctx.translate(cx + t.ox, cy + t.oy);
-    hctx.rotate(t.rot);
-    hctx.scale(t.mirror ? -t.drawScale : t.drawScale, t.drawScale);
-    const filt = [];
-    if (t.hueDeg !== 0) filt.push(`hue-rotate(${t.hueDeg}deg)`);
-    filt.push(`saturate(${t.sat.toFixed(3)})`);
-    filt.push(`contrast(${t.con.toFixed(3)})`);
-    hctx.filter = filt.join(' ');
-    hctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
-    hctx.restore();
-
-    return downsampleHiCanvasToEmojiPixelArt(hi, w, h);
-  }
-
-  /** Twemoji URL 우선, 실패 시 시스템 이모지 글리프 */
-  async function rasterizeEmojiToPixelArt(emoji, w, h, transformSeed) {
-    const tw = await rasterizeEmojiFromTwemojiUrl(emoji, w, h, transformSeed);
-    if (tw) return tw;
-    return rasterizeEmojiToPixelArtFillText(emoji, w, h, transformSeed);
-  }
-
   /** DALL-E 이미지 URL(또는 data URL) → 픽셀아트 cells+palette */
   async function rasterizeImageUrlToPixelArt(url, w, h) {
     return new Promise((resolve) => {
@@ -1126,8 +661,7 @@
       const fromImg = await rasterizeImageUrlToPixelArt(spriteUrl, w, h);
       if (fromImg) return fromImg;
     }
-    const emoji = pickEmojiForItem(item.name, pickSeed, true);
-    return rasterizeEmojiToPixelArt(emoji, w, h, base);
+    return generateProceduralPixelArtFromItem(item, pickSeed, true);
   }
 
   async function generateCatchPixelArt(item) {
@@ -1139,8 +673,7 @@
       const fromImg = await rasterizeImageUrlToPixelArt(spriteUrl, w, h);
       if (fromImg) return fromImg;
     }
-    const emoji = pickEmojiForItem(item.name, base, false);
-    return rasterizeEmojiToPixelArt(emoji, w, h, base);
+    return generateProceduralPixelArtFromItem(item, base, false);
   }
 
   /** 보관함 등에서 픽셀 재생성용 최소 필드 */
@@ -1472,8 +1005,7 @@
       const item = { name, type: UNIFIED_TYPE, rarity, size };
       const base = hashPixelArtSeed(item);
       const pickSeed = marine ? base ^ 0x9e3779b9 : base;
-      const emoji = pickEmojiForItem(item.name, pickSeed, marine);
-      const art0 = rasterizeEmojiToPixelArtFillText(emoji, PIXEL_GRID_W, PIXEL_GRID_H, base);
+      const art0 = generateProceduralPixelArtFromItem(item, pickSeed, marine);
       const scale = mobileLight
         ? 2
         : 2 + (Math.random() < 0.28 ? 1 : 0);
@@ -1494,13 +1026,6 @@
         halfH: bmp.height / 2,
         _bgScale: scale,
       };
-      rasterizeEmojiFromTwemojiUrl(emoji, PIXEL_GRID_W, PIXEL_GRID_H, base).then((twArt) => {
-        if (!twArt || !floater.bmp) return;
-        const next = rasterizePixelArtForBg(twArt, floater._bgScale);
-        floater.bmp = next;
-        floater.halfW = next.width / 2;
-        floater.halfH = next.height / 2;
-      });
       return floater;
     }
 
@@ -1669,7 +1194,7 @@
     const totalValue = inventory.reduce((s, i) => s + i.coins, 0);
     if (sellAllBtn) {
       sellAllBtn.classList.remove('hidden');
-      sellAllBtn.textContent = `전체 팔기 · ${totalValue.toLocaleString()}🪙`;
+      sellAllBtn.textContent = `전체 팔기 · ${totalValue.toLocaleString()} 코인`;
     }
 
     inventoryList.innerHTML = '';
@@ -1681,7 +1206,7 @@
       el.innerHTML = `
         <div class="inv-thumb" data-thumb></div>
         <span class="inv-name">${item.name}</span>
-        <span class="inv-coins">${item.coins}🪙</span>
+        <span class="inv-coins">${item.coins} 코인</span>
         ${canSell
           ? `<button class="inv-sell-btn" data-id="${item.id}">팔기</button>`
           : `<span class="inv-sell-pending">${isLoggedIn ? '저장 중' : '로그인 필요'}</span>`
@@ -1714,7 +1239,7 @@
     if (payload.type === 'one') {
       const item = inventory.find((i) => i.id === payload.id);
       sellConfirmMsg.textContent = item
-        ? `「${item.name}」을(를) 정말 파시겠습니까?\n예상 수익 ${item.coins.toLocaleString()}🪙`
+        ? `「${item.name}」을(를) 정말 파시겠습니까?\n예상 수익 ${item.coins.toLocaleString()} 코인`
         : '이 아이템을 정말 파시겠습니까?';
     } else {
       const withId = inventory.filter((i) => i.id);
@@ -1722,7 +1247,7 @@
       const total = withId.reduce((s, i) => s + (i.coins || 0), 0);
       sellConfirmMsg.textContent =
         n > 0
-          ? `보관함의 아이템 ${n}개를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()}🪙`
+          ? `보관함의 아이템 ${n}개를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()} 코인`
           : '팔 수 있는 아이템이 없습니다.';
     }
     sellConfirmOverlay.classList.remove('hidden');
@@ -1965,7 +1490,7 @@
     minigame.classList.add('hidden');
     beamLine.classList.remove('extended');
     lureEl.classList.remove('biting');
-    lureEl.textContent = '🔵';
+    lureEl.textContent = '';
     syncInventoryDockMinigamePosition();
     syncInventoryScrollOverflow();
   }
@@ -1987,7 +1512,7 @@
 
   function goWaiting() {
     state = 'WAITING';
-    showStatus('우주의 심연을 기다리는 중 🌌');
+    showStatus('우주의 심연을 기다리는 중...');
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
@@ -2002,7 +1527,7 @@
   function goMinigame() {
     state = 'MINIGAME';
     lureEl.classList.add('biting');
-    showStatus('⚡ 무언가 걸렸다!');
+    showStatus('무언가 걸렸다!');
     minigame.classList.remove('hidden');
     startMinigame(currentItem);
     syncInventoryDockMinigamePosition();
@@ -2018,7 +1543,7 @@
     syncInventoryScrollOverflow();
     lureEl.classList.remove('biting');
     beamLine.classList.remove('extended');
-    lureEl.textContent = '🔵';
+    lureEl.textContent = '';
 
     if (!success) {
       state = 'IDLE';
@@ -2033,7 +1558,7 @@
     // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      showStatus('🎨 AI가 생명체를 그리는 중...');
+      showStatus('AI가 생명체를 그리는 중...');
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 16000); // 16초 타임아웃 (PixelLab ~3초)
@@ -2061,23 +1586,54 @@
       const type = aiData.type || UNIFIED_TYPE;
       const size = rollSize(rarity);
       const coins = computeCoinValue(rarity, size, type);
-      const emoji = aiData.emoji || '';
-
-      // DALL-E 이미지 → 픽셀아트 변환 (실패 시 이모지 폴백)
+      // 이미지 URL → 픽셀아트 변환 (실패 시 절차적 패턴)
       let pixelArt = null;
       if (aiData.imageUrl) {
         pixelArt = await rasterizeImageUrlToPixelArt(
           aiData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H
         );
       }
-      if (!pixelArt && emoji) {
-        const seed = hashPixelArtSeed({ name: aiData.name });
-        pixelArt = await rasterizeEmojiToPixelArt(emoji, PIXEL_GRID_W, PIXEL_GRID_H, seed);
+      if (!pixelArt) {
+        const stub = { name: aiData.name, type, rarity, size };
+        pixelArt = generateProceduralPixelArtFromItem(
+          stub,
+          hashPixelArtSeed(stub),
+          false
+        );
       }
 
-      item = { name: aiData.name, type, rarity, size, coins, emoji, pixelArt };
+      item = { name: aiData.name, type, rarity, size, coins, pixelArt };
     } else {
+      // 일반·희귀: 절차적 이름 + 공유 캐시 이미지 (없으면 PixelLab 생성 후 저장)
       item = rollItemFromRarity(rarity);
+      if (isLoggedIn && alpToken && platformApi) {
+        showStatus('이미지를 불러오는 중...');
+        try {
+          const ctrl2 = new AbortController();
+          const tid2 = setTimeout(() => ctrl2.abort(), 12000);
+          const imgRes = await fetch(`${platformApi}/api/ai/image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${alpToken}`,
+            },
+            body: JSON.stringify({ name: item.name, type: item.type, rarity }),
+            signal: ctrl2.signal,
+          });
+          clearTimeout(tid2);
+          if (imgRes.ok) {
+            const imgData = await imgRes.json();
+            if (imgData.imageUrl) {
+              const art = await rasterizeImageUrlToPixelArt(
+                imgData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H
+              );
+              if (art) item.pixelArt = art;
+            }
+          }
+        } catch {
+          // 이미지 실패 → 절차적 폴백 (showResult가 자동 처리)
+        }
+      }
     }
     currentItem = item;
 
@@ -2210,7 +1766,7 @@
     resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
     resultSize.textContent  = `${item.size}cm`;
-    resultCoins.textContent = `${item.coins}🪙`;
+    resultCoins.textContent = `${item.coins} 코인`;
     resultCard.classList.remove('hidden');
 
     totalCatches += 1;
@@ -2220,7 +1776,7 @@
   /* ── 서버 저장 + 보관함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
-    // AI 픽셀아트(에픽+)만 정제해서 전송, 그 외는 서버가 자체 생성
+    // AI 픽셀아트가 있으면 정제해서 전송, 없으면 서버가 자체 생성 (공유 캐시 or 절차적)
     const pixelArtForServer = item.pixelArt
       ? serializePixelArt(item.pixelArt)
       : null;
@@ -2229,7 +1785,7 @@
       try {
         const body = {
           itemName:  item.name,
-          itemEmoji: item.emoji || '',
+          itemEmoji: '',
           itemType:  item.type,
           rarity:    item.rarity,
           size:      item.size,
