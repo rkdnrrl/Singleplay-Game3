@@ -1678,10 +1678,10 @@
     // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      startScanPanelCountdown();
+      startScanPanelCountdown(55); // Claude + PixelLab 합산 최대 ~55초
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 35000); // 35초 (Claude + PixelLab 합산)
+        const tid = setTimeout(() => ctrl.abort(), 60000); // 60초
         const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
           method: 'POST',
           headers: {
@@ -1731,10 +1731,10 @@
       item = rollItemFromRarity(rarity);
 
       if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
-        startScanPanelCountdown();
+        startScanPanelCountdown(55);
         try {
           const ctrl2 = new AbortController();
-          const tid2 = setTimeout(() => ctrl2.abort(), 35000);
+          const tid2 = setTimeout(() => ctrl2.abort(), 60000);
           const imgRes = await fetch(`${platformApi}/api/ai/image`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
@@ -1972,7 +1972,7 @@
     if (scanCountNum) scanCountNum.textContent = '20';
   }
 
-  function startScanPanelCountdown() {
+  function startScanPanelCountdown(seconds = 55) {
     if (scanCountdownTimer != null) {
       clearInterval(scanCountdownTimer);
       scanCountdownTimer = null;
@@ -1982,7 +1982,7 @@
     if (!scanPanel || !scanCountNum || !scanCountdownLine || !scanOngoingLine) return;
     scanCountdownLine.classList.remove('hidden');
     scanOngoingLine.classList.add('hidden');
-    let remaining = 20;
+    let remaining = seconds;
     scanCountNum.textContent = String(remaining);
     scanPanel.classList.remove('hidden');
     scanCountdownTimer = window.setInterval(() => {
