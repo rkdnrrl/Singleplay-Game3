@@ -22,6 +22,9 @@
   // 비우면 코드에 있는 기본 우주인 픽셀아트가 쓰입니다.
   // window.__PLAYER_SPRITE_URL__ = '/assets/player.png';
   //
+  // 일반·희귀 최초 AI 스캔 성공 시 클라이언트에서 +100 코인(로컬 표시). 플랫폼 지갑과 동기화하려면
+  // 동일 조건으로 서버에서 보너스를 지급하는 API를 따로 두는 것을 권장합니다.
+  //
   // 에픽·전설 완화 허용 스위치(내부 빌드만 true). 배포는 반드시 false — URL만으로는 켜지지 않음.
   // 켤 때: 여기 true + 페이지에 `?easyEpic=1` 또는 `?testEpic=1` 둘 다 필요.
   window.__ALP_EASY_EPIC_TEST__ = false;
