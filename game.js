@@ -846,6 +846,7 @@
   const targetZone        = document.getElementById('targetZone');
   const catchBar          = document.getElementById('catchBar');
   const catchProgressFill = document.getElementById('catchProgressFill');
+  const scanBox           = document.getElementById('scanBox');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultRarity      = document.getElementById('resultRarity');
@@ -1716,18 +1717,12 @@
 
       item = { name: aiData.name, type, rarity, size, coins, pixelArt };
     } else {
-      // 일반·희귀 (또는 에픽·전설 AI 폴백): 절차적 이름으로 즉시 생성
+      // 일반·희귀 (또는 에픽·전설 AI 폴백): 절차적 이름 생성 후 스캔 박스로 대기
       item = rollItemFromRarity(rarity);
-    }
-    currentItem = item;
 
-    // 결과 카드를 즉시 표시 (AI 이미지 기다리지 않음)
-    await showResult(currentItem);
-    await saveCatch(currentItem);
-
-    // 일반·희귀: AI 이미지를 백그라운드에서 로드 → 완료되면 카드·보관함 업데이트
-    if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
-      void (async () => {
+      if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
+        // 스캔 박스 표시
+        if (scanBox) scanBox.classList.remove('hidden');
         try {
           const ctrl2 = new AbortController();
           const tid2 = setTimeout(() => ctrl2.abort(), 35000);
@@ -1738,31 +1733,29 @@
             signal: ctrl2.signal,
           });
           clearTimeout(tid2);
-          if (!imgRes.ok) {
+          if (imgRes.ok) {
+            const imgData = await imgRes.json();
+            console.log('[AI image]', rarity, imgData.cached ? 'cache hit' : 'generated', imgData.imageUrl ? 'has url' : 'no url');
+            if (imgData.imageUrl) {
+              const art = await rasterizeImageUrlToPixelArt(imgData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
+              if (art) item.pixelArt = art;
+            }
+          } else {
             const errText = await imgRes.text().catch(() => '');
             console.error('[AI image] server error', imgRes.status, errText);
-            return;
           }
-          const imgData = await imgRes.json();
-          console.log('[AI image]', rarity, imgData.cached ? 'cache hit' : 'generated', imgData.imageUrl ? 'has url' : 'no url');
-          if (!imgData.imageUrl) return;
-          const art = await rasterizeImageUrlToPixelArt(imgData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
-          if (!art) return;
-          // 아이템에 AI 픽셀아트 반영
-          item.pixelArt = art;
-          if (currentItem === item) currentItem.pixelArt = art;
-          // 결과 카드가 아직 열려 있으면 스프라이트 교체
-          if (resultSpriteHost && !resultCard.classList.contains('hidden')) {
-            mountPixelArt(resultSpriteHost, art, 128, 128);
-          }
-          // 보관함 첫 번째 썸네일 교체
-          const firstThumb = inventoryList?.querySelector('.item-thumb');
-          if (firstThumb) mountPixelArt(firstThumb, art, 56, 56);
         } catch (err) {
           console.error('[AI image] fetch error', err.message || err);
+        } finally {
+          // 스캔 박스 숨김
+          if (scanBox) scanBox.classList.add('hidden');
         }
-      })();
+      }
     }
+    currentItem = item;
+
+    await showResult(currentItem);
+    await saveCatch(currentItem);
 
     setTimeout(() => {
       resultCard.classList.add('hidden');
