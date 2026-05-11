@@ -1597,6 +1597,7 @@
     state = 'IDLE';
     setMinigameScrollLocked(false);
     castBtn.classList.remove('hidden');
+    stopStatusScanning();
     statusMsg.classList.add('hidden');
     minigame.classList.add('hidden');
     beamLine.classList.remove('extended');
@@ -1669,7 +1670,7 @@
     // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      showStatus('AI가 생명체를 그리는 중...');
+      showStatusScanning('스캔중');
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 16000); // 16초 타임아웃 (PixelLab ~3초)
@@ -1718,7 +1719,7 @@
       // 일반·희귀: 절차적 이름 + 공유 캐시 이미지 (없으면 PixelLab 생성 후 저장)
       item = rollItemFromRarity(rarity);
       if (isLoggedIn && alpToken && platformApi) {
-        showStatus('이미지를 불러오는 중...');
+        showStatusScanning('스캔중');
         try {
           const ctrl2 = new AbortController();
           const tid2 = setTimeout(() => ctrl2.abort(), 35000);
@@ -1869,6 +1870,8 @@
 
   /* ── 결과 표시 ───────────────────────────────────────── */
   async function showResult(item) {
+    stopStatusScanning();
+    if (statusMsg) statusMsg.classList.add('hidden');
     resultCard.className = `result-card hidden rarity-${item.rarity}`;
     if (!item.pixelArt) {
       item.pixelArt = await generateCatchPixelArt(item);
@@ -1940,7 +1943,24 @@
   }
 
   /* ── 유틸 ────────────────────────────────────────────── */
+  /** 스캔중 점 애니메이션용 — showStatus 호출 시 DOM 초기화 */
+  function stopStatusScanning() {
+    if (!statusMsg) return;
+    if (statusMsg.querySelector('.status-scan-dots')) {
+      statusMsg.textContent = '';
+    }
+  }
+
+  /** "스캔중" + 점(…) 순차 애니메이션 (CSS `.status-scan-dots`) */
+  function showStatusScanning(label) {
+    if (!statusMsg) return;
+    const base = String(label || '스캔중').replace(/[\s.]+$/g, '');
+    statusMsg.innerHTML = `${base}<span class="status-scan-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span><span>.</span></span>`;
+    statusMsg.classList.remove('hidden');
+  }
+
   function showStatus(msg) {
+    stopStatusScanning();
     statusMsg.textContent = msg;
     statusMsg.classList.remove('hidden');
   }
