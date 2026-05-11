@@ -272,6 +272,16 @@ html.minigame-active body {
   font-size: 0.92rem;
   color: #ffcc80;
   text-shadow: 0 0 10px rgba(255, 183, 77, 0.45);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 0.5rem;
+}
+.scan-ongoing-main { letter-spacing: 0.03em; }
+.scan-ongoing-elapsed {
+  font-variant-numeric: tabular-nums;
+  color: #ffe082;
 }
 .scan-box-inner {
   display: flex;

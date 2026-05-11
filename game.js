@@ -850,6 +850,7 @@
   const scanCountNum       = document.getElementById('scanCountNum');
   const scanCountdownLine  = document.getElementById('scanCountdownLine');
   const scanOngoingLine    = document.getElementById('scanOngoingLine');
+  const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultRarity      = document.getElementById('resultRarity');
@@ -1596,7 +1597,7 @@
     cfg: null,
   };
 
-  /** 스캔 패널 20→1초 카운터, 이후 "아직 스캔 중" 표시 */
+  /** 스캔 패널 20→1초 카운터, 이후 경과 초(1초마다 증가) 표시 */
   let scanCountdownTimer = null;
 
   /* ── 상태 전환 ───────────────────────────────────────── */
@@ -1678,7 +1679,7 @@
     // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      startScanPanelCountdown(55); // Claude + PixelLab 합산 최대 ~55초
+      startScanPanelCountdown();
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 60000); // 60초
@@ -1731,7 +1732,7 @@
       item = rollItemFromRarity(rarity);
 
       if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
-        startScanPanelCountdown(55);
+        startScanPanelCountdown();
         try {
           const ctrl2 = new AbortController();
           const tid2 = setTimeout(() => ctrl2.abort(), 60000);
@@ -1970,9 +1971,10 @@
     if (scanCountdownLine) scanCountdownLine.classList.remove('hidden');
     if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
     if (scanCountNum) scanCountNum.textContent = '20';
+    if (scanOngoingElapsed) scanOngoingElapsed.textContent = '1';
   }
 
-  function startScanPanelCountdown(seconds = 55) {
+  function startScanPanelCountdown(seconds = 20) {
     if (scanCountdownTimer != null) {
       clearInterval(scanCountdownTimer);
       scanCountdownTimer = null;
@@ -1996,6 +1998,12 @@
         }
         scanCountdownLine.classList.add('hidden');
         scanOngoingLine.classList.remove('hidden');
+        let elapsed = 1;
+        if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
+        scanCountdownTimer = window.setInterval(() => {
+          elapsed += 1;
+          if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
+        }, 1000);
       }
     }, 1000);
   }
