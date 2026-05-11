@@ -105,6 +105,26 @@
     </div>
   </div>
 
+  <!-- 분광·성분 스캔 대기: 팁 + 카운터 + 트랙 -->
+  <div id="scanPanel" class="scan-panel hidden" role="status" aria-live="polite">
+    <p class="scan-tip">처음 분류하는 고철은 스캔에 시간이 걸릴 수 있어요.</p>
+    <p id="scanCountdownLine" class="scan-countdown-line">
+      <span id="scanCountNum">20</span>초 · 예상 대기
+    </p>
+    <p id="scanOngoingLine" class="scan-ongoing-line hidden">
+      <span class="scan-ongoing-main">스캔중입니다</span>
+      <span class="scan-ongoing-elapsed"><span id="scanOngoingElapsed">1</span>초</span>
+      <span class="status-scan-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span><span>.</span></span>
+    </p>
+    <div class="scan-box-inner">
+      <div class="scan-track">
+        <div class="scan-beam"></div>
+        <span class="scan-lens" aria-hidden="true"></span>
+      </div>
+      <p class="scan-label" id="scanMainLabel">분광 스캔중<span class="status-scan-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span><span>.</span></span></p>
+    </div>
+  </div>
+
   <div class="result-card hidden" id="resultCard">
     <div class="result-preview">
       <div class="result-sprite-host" id="resultSpriteHost" aria-hidden="true"></div>

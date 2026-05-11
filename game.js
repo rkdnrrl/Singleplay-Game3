@@ -875,6 +875,11 @@
   const targetZone        = document.getElementById('targetZone');
   const catchBar          = document.getElementById('catchBar');
   const catchProgressFill = document.getElementById('catchProgressFill');
+  const scanPanel          = document.getElementById('scanPanel');
+  const scanCountNum       = document.getElementById('scanCountNum');
+  const scanCountdownLine  = document.getElementById('scanCountdownLine');
+  const scanOngoingLine    = document.getElementById('scanOngoingLine');
+  const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultEpicCongrats  = document.getElementById('resultEpicCongrats');
@@ -1205,7 +1210,6 @@
     };
     try {
       if (rarity === 'common' || rarity === 'rare') {
-        showStatus('🎨 AI가 픽셀 그림을 완성하는 중... (같은 이름은 공유 DB에서 불러옵니다)');
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 120000);
         const res = await fetch(`${platformApi}/api/ai/image`, {
@@ -1233,7 +1237,6 @@
         return item;
       }
       if (rarity === 'epic' || rarity === 'legendary') {
-        showStatus('🎨 AI가 우량·특급 스크랩을 그리는 중...');
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 120000);
         const res = await fetch(`${platformApi}/api/ai/catch`, {
@@ -1619,11 +1622,61 @@
     cfg: null,
   };
 
+  /** 스캔 패널 20→1초 카운터, 이후 경과 초(1초마다 증가) */
+  let scanCountdownTimer = null;
+
+  function stopScanPanel() {
+    if (scanCountdownTimer != null) {
+      clearInterval(scanCountdownTimer);
+      scanCountdownTimer = null;
+    }
+    if (scanPanel) scanPanel.classList.add('hidden');
+    if (scanCountdownLine) scanCountdownLine.classList.remove('hidden');
+    if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
+    if (scanCountNum) scanCountNum.textContent = '20';
+    if (scanOngoingElapsed) scanOngoingElapsed.textContent = '1';
+  }
+
+  function startScanPanelCountdown(seconds = 20) {
+    if (scanCountdownTimer != null) {
+      clearInterval(scanCountdownTimer);
+      scanCountdownTimer = null;
+    }
+    stopStatusScanning();
+    if (statusMsg) statusMsg.classList.add('hidden');
+    if (!scanPanel || !scanCountNum || !scanCountdownLine || !scanOngoingLine) return;
+    scanCountdownLine.classList.remove('hidden');
+    scanOngoingLine.classList.add('hidden');
+    let remaining = seconds;
+    scanCountNum.textContent = String(remaining);
+    scanPanel.classList.remove('hidden');
+    scanCountdownTimer = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining >= 1) {
+        scanCountNum.textContent = String(remaining);
+      } else {
+        if (scanCountdownTimer != null) {
+          clearInterval(scanCountdownTimer);
+          scanCountdownTimer = null;
+        }
+        scanCountdownLine.classList.add('hidden');
+        scanOngoingLine.classList.remove('hidden');
+        let elapsed = 1;
+        if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
+        scanCountdownTimer = window.setInterval(() => {
+          elapsed += 1;
+          if (scanOngoingElapsed) scanOngoingElapsed.textContent = String(elapsed);
+        }, 1000);
+      }
+    }, 1000);
+  }
+
   /* ── 상태 전환 ───────────────────────────────────────── */
   function goIdle() {
     state = 'IDLE';
     setMinigameScrollLocked(false);
     castBtn.classList.remove('hidden');
+    stopScanPanel();
     stopStatusScanning();
     statusMsg.classList.add('hidden');
     minigame.classList.add('hidden');
@@ -1638,6 +1691,7 @@
     state = 'CASTING';
     castBtn.classList.add('hidden');
     resultCard.classList.add('hidden');
+    stopScanPanel();
     showStatus('자석을 내리는 중...');
     beamLine.classList.add('extended');
 
@@ -1692,8 +1746,20 @@
 
     state = 'RESULT';
     const rarity = currentItem.rarity;
+    startScanPanelCountdown(20);
+    const scanT0 = performance.now();
     let item = rollItemFromRarity(rarity);
-    item = await enrichCatchItemWithAi(item);
+    try {
+      item = await enrichCatchItemWithAi(item);
+    } catch {
+      /* enrich 내부에서 이미 폴백 */
+    }
+    const scanElapsed = performance.now() - scanT0;
+    const scanMinMs = 2200;
+    if (scanElapsed < scanMinMs) {
+      await new Promise((r) => setTimeout(r, scanMinMs - scanElapsed));
+    }
+    stopScanPanel();
     currentItem = item;
 
     await showResult(currentItem);
@@ -1813,6 +1879,7 @@
 
   /* ── 결과 표시 ───────────────────────────────────────── */
   async function showResult(item) {
+    stopScanPanel();
     stopStatusScanning();
     if (statusMsg) statusMsg.classList.add('hidden');
     resultCard.className = `result-card hidden rarity-${item.rarity}`;
