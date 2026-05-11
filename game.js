@@ -1827,6 +1827,14 @@
                 commonRareScanImageSuccess = true;
               }
             }
+            // 서버가 지급한 코인 총액으로 동기화
+            if (imgData.coins != null) {
+              totalCoins = imgData.coins;
+              updateCoinDisplay();
+            }
+            if (imgData.bonusCoins) {
+              item.scanBonusCoins = imgData.bonusCoins;
+            }
           } else {
             const errText = await imgRes.text().catch(() => '');
             console.error('[AI image] server error', imgRes.status, errText);
@@ -1838,7 +1846,8 @@
         }
       }
     }
-    grantCommonRareScanImageBonus(item, commonRareScanImageSuccess);
+    // 코인은 서버에서 이미 지급됨 — 클라이언트 단독 지급 제거
+    // grantCommonRareScanImageBonus(item, commonRareScanImageSuccess);
     currentItem = item;
 
     await showResult(currentItem);
