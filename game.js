@@ -1192,6 +1192,83 @@
     return { name, type: UNIFIED_TYPE, rarity, size, coins };
   }
 
+  /**
+   * 로그인 시: 일반·희귀 → /api/ai/image (PixelLab 완료까지 대기, 서버가 shared_pixel_arts에 `shared:scrapyard:` 키로 캐시)
+   * 에픽·전설 → /api/ai/catch (공유 DB 없이 유저 캐치에만 저장)
+   */
+  async function enrichCatchItemWithAi(item) {
+    const rarity = item.rarity;
+    if (!isLoggedIn || !alpToken || !platformApi) return item;
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${alpToken}`,
+    };
+    try {
+      if (rarity === 'common' || rarity === 'rare') {
+        showStatus('🎨 AI가 픽셀 그림을 완성하는 중... (같은 이름은 공유 DB에서 불러옵니다)');
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 120000);
+        const res = await fetch(`${platformApi}/api/ai/image`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: item.name,
+            type: item.type,
+            rarity: item.rarity,
+          }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.coins != null && Number.isFinite(Number(data.coins))) {
+            totalCoins = Number(data.coins);
+            updateCoinDisplay();
+          }
+          if (data.imageUrl) {
+            const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
+            if (art) item.pixelArt = art;
+          }
+        }
+        return item;
+      }
+      if (rarity === 'epic' || rarity === 'legendary') {
+        showStatus('🎨 AI가 우량·특급 스크랩을 그리는 중...');
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 120000);
+        const res = await fetch(`${platformApi}/api/ai/catch`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ rarity }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (!res.ok) return item;
+        const ai = await res.json();
+        if (!ai || typeof ai.name !== 'string' || !String(ai.name).trim()) return item;
+        const size = rollSize(rarity);
+        const typ = typeof ai.type === 'string' && ai.type.length ? ai.type : UNIFIED_TYPE;
+        const coins = computeCoinValue(rarity, size, typ);
+        const next = {
+          name: String(ai.name).trim().slice(0, 50),
+          type: typ,
+          rarity,
+          size,
+          coins,
+          emoji: typeof ai.emoji === 'string' ? ai.emoji.slice(0, 8) : '',
+        };
+        if (ai.imageUrl) {
+          const art = await rasterizeImageUrlToPixelArt(ai.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
+          if (art) next.pixelArt = art;
+        }
+        return next;
+      }
+    } catch {
+      /* PixelLab/네트워크 실패 → 절차적 픽셀 폴백 */
+    }
+    return item;
+  }
+
   /* ── 적재함(인벤토리) ─────────────────────────────────── */
   function syncInventoryDockLayoutMode() {
     if (!inventoryDock || !inventoryScrollWrap) return;
@@ -1615,7 +1692,8 @@
 
     state = 'RESULT';
     const rarity = currentItem.rarity;
-    const item = rollItemFromRarity(rarity);
+    let item = rollItemFromRarity(rarity);
+    item = await enrichCatchItemWithAi(item);
     currentItem = item;
 
     await showResult(currentItem);
@@ -1772,7 +1850,7 @@
       try {
         const body = {
           itemName:  item.name,
-          itemEmoji: '',
+          itemEmoji: typeof item.emoji === 'string' ? item.emoji.slice(0, 10) : '',
           itemType:  item.type,
           rarity:    item.rarity,
           size:      item.size,
