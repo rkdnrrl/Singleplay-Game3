@@ -1654,15 +1654,19 @@
           clearTimeout(tid2);
           if (imgRes.ok) {
             const imgData = await imgRes.json();
+            console.log('[AI image]', rarity, imgData.cached ? 'cache hit' : 'generated', imgData.imageUrl ? 'has url' : 'no url');
             if (imgData.imageUrl) {
               const art = await rasterizeImageUrlToPixelArt(
                 imgData.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H
               );
               if (art) item.pixelArt = art;
             }
+          } else {
+            const errText = await imgRes.text().catch(() => '');
+            console.error('[AI image] server error', imgRes.status, errText);
           }
-        } catch {
-          // 이미지 실패 → 절차적 폴백 (showResult가 자동 처리)
+        } catch (err) {
+          console.error('[AI image] fetch error', err.message || err);
         }
       }
     }
