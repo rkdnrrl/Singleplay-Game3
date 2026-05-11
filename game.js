@@ -1718,7 +1718,8 @@
     } else {
       // 일반·희귀: 절차적 이름 + 공유 캐시 이미지 (없으면 PixelLab 생성 후 저장)
       item = rollItemFromRarity(rarity);
-      if (isLoggedIn && alpToken && platformApi) {
+      // 에픽·전설이 AI 폴백으로 여기 오면 이미지 요청 스킵 (일반·희귀만)
+      if (isLoggedIn && alpToken && platformApi && (rarity === 'common' || rarity === 'rare')) {
         showStatusScanning('스캔중');
         try {
           const ctrl2 = new AbortController();
