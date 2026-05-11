@@ -43,4 +43,8 @@
   // window.__PLAYER_FOLDER_FRAME_GAP_ABORT__ = 3;
   // window.__PLAYER_IDLE_FRAMES__ = ['assets/player/idle/1.png', 'assets/player/idle/2.png'];
   // window.__PLAYER_ACTION_FRAMES__ = ['assets/player/action/1.png', 'assets/player/action/2.png'];
+  //
+  // 사운드 — BGM은 `sounds/bgm/`, 효과음은 `sounds/sfx/` (권장 파일명은 `sounds/README.txt` 참고).
+  // window.__ALP_SOUND_BGM_BASE__ = 'sounds/bgm/';
+  // window.__ALP_SOUND_SFX_BASE__ = 'sounds/sfx/';
 })();
