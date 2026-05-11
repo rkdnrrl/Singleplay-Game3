@@ -1641,7 +1641,7 @@
         showStatus('이미지를 불러오는 중...');
         try {
           const ctrl2 = new AbortController();
-          const tid2 = setTimeout(() => ctrl2.abort(), 12000);
+          const tid2 = setTimeout(() => ctrl2.abort(), 25000);
           const imgRes = await fetch(`${platformApi}/api/ai/image`, {
             method: 'POST',
             headers: {
