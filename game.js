@@ -1681,7 +1681,7 @@
       startScanPanelCountdown();
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 16000); // 16초 타임아웃 (PixelLab ~3초)
+        const tid = setTimeout(() => ctrl.abort(), 35000); // 35초 (Claude + PixelLab 합산)
         const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
           method: 'POST',
           headers: {
