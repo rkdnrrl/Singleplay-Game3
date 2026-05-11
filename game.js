@@ -34,6 +34,16 @@
       const items = inventory.map((i) => {
         const uid = itemForgeUid(i);
         if (!i.uid) i.uid = uid;
+        let pixelArt = null;
+        if (i.pixelArt && i.pixelArt.cells && i.pixelArt.palette) {
+          pixelArt = {
+            w: i.pixelArt.w,
+            h: i.pixelArt.h,
+            palette: i.pixelArt.palette.slice(),
+            cells: i.pixelArt.cells.slice(),
+            fromEmoji: !!i.pixelArt.fromEmoji,
+          };
+        }
         return {
           uid,
           name: i.name,
@@ -41,15 +51,25 @@
           size: i.size,
           coins: i.coins,
           serverId: i.id != null ? i.id : null,
+          pixelArt,
         };
       });
       localStorage.setItem(
         FORGE_MATERIALS_KEY,
-        JSON.stringify({ v: 1, items, updatedAt: Date.now(), source: 'space-fishing' })
+        JSON.stringify({ v: 2, items, updatedAt: Date.now(), source: 'space-fishing' })
       );
     } catch {
       /* ignore */
     }
+  }
+
+  let forgeMaterialsPersistTimer = null;
+  function schedulePersistForgeMaterials() {
+    if (forgeMaterialsPersistTimer) window.clearTimeout(forgeMaterialsPersistTimer);
+    forgeMaterialsPersistTimer = window.setTimeout(() => {
+      forgeMaterialsPersistTimer = null;
+      persistForgeMaterials();
+    }, 120);
   }
 
   function filterInventoryByForgeSpent() {
@@ -1743,6 +1763,7 @@ USB허브
       inventoryList.innerHTML = '<p class="log-empty">적재함이 비어 있습니다</p>';
       if (sellAllBtn) sellAllBtn.classList.add('hidden');
       syncInventoryScrollOverflow();
+      persistForgeMaterials();
       return;
     }
 
@@ -1774,13 +1795,14 @@ USB허브
             item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
               ? item.pixelArt
               : await generateCatchPixelArt(itemStubForArt(item));
+          item.pixelArt = art;
           mountPixelArt(thumb, art, 56, 56);
+          schedulePersistForgeMaterials();
         })();
       }
       inventoryList.appendChild(el);
     });
     syncInventoryScrollOverflow();
-    persistForgeMaterials();
   }
 
   function closeSellConfirm() {
