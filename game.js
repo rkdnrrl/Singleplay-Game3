@@ -710,23 +710,28 @@ USB허브
     return best;
   }
 
+  function applyImageUrlCrossOrigin(img, urlStr) {
+    const s = String(urlStr || '').trim();
+    try {
+      if (!s.startsWith('data:') && !s.startsWith('blob:')) {
+        const abs = new URL(s, window.location.href).href;
+        const here = window.location.origin;
+        if (here && /^https?:/i.test(abs)) {
+          const there = new URL(abs).origin;
+          if (there && there !== here) img.crossOrigin = 'anonymous';
+        }
+      }
+    } catch {
+      /* 상대 경로 등은 crossOrigin 미설정 */
+    }
+  }
+
   /** DALL-E 이미지 URL(또는 data URL) → 픽셀아트 cells+palette */
   async function rasterizeImageUrlToPixelArt(url, w, h) {
     return new Promise((resolve) => {
       const img = new Image();
       const s = String(url || '').trim();
-      try {
-        if (!s.startsWith('data:') && !s.startsWith('blob:')) {
-          const abs = new URL(s, window.location.href).href;
-          const here = window.location.origin;
-          if (here && /^https?:/i.test(abs)) {
-            const there = new URL(abs).origin;
-            if (there && there !== here) img.crossOrigin = 'anonymous';
-          }
-        }
-      } catch {
-        /* 상대 경로 등은 crossOrigin 미설정 */
-      }
+      applyImageUrlCrossOrigin(img, s);
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
@@ -819,6 +824,102 @@ USB허브
     hostEl.appendChild(canvas);
   }
 
+  /** 원본 이미지 픽셀을 그대로 캔버스에 복사(32×32 그리드로 줄이지 않음). */
+  async function loadImageToCanvasNaturalUrl(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const s = String(url || '').trim();
+      applyImageUrlCrossOrigin(img, s);
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth | 0;
+          const h = img.naturalHeight | 0;
+          if (w < 1 || h < 1) {
+            resolve(null);
+            return;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = s;
+    });
+  }
+
+  function playerNativeFrameSizeEnabled() {
+    const fw = Number(window.__PLAYER_FRAME_WIDTH__);
+    const fh = Number(window.__PLAYER_FRAME_HEIGHT__);
+    return (
+      Number.isFinite(fw) &&
+      fw > PIXEL_GRID_W &&
+      Number.isFinite(fh) &&
+      fh > PIXEL_GRID_H
+    );
+  }
+
+  async function loadPlayerSpriteFrameForUrl(url, useNative) {
+    const u = String(url || '').trim();
+    if (!u) return null;
+    if (useNative) {
+      const canvas = await loadImageToCanvasNaturalUrl(u);
+      return canvas ? { kind: 'native', canvas } : null;
+    }
+    const art = await rasterizeImageUrlToPixelArt(u, PIXEL_GRID_W, PIXEL_GRID_H);
+    return art && Array.isArray(art.cells) ? { kind: 'pixel', art } : null;
+  }
+
+  function mountPlayerSprite(hostEl, frame) {
+    if (!hostEl || !frame) return;
+    if (frame.kind === 'native' && frame.canvas) {
+      const src = frame.canvas;
+      const c = document.createElement('canvas');
+      c.width = src.width;
+      c.height = src.height;
+      c.className = 'pixel-art-canvas';
+      const ctx = c.getContext('2d');
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(src, 0, 0);
+      const wSpec = Number(window.__PLAYER_DISPLAY_CSS_W__);
+      const hSpec = Number(window.__PLAYER_DISPLAY_CSS_H__);
+      const expW = Number(window.__PLAYER_FRAME_WIDTH__);
+      const expH = Number(window.__PLAYER_FRAME_HEIGHT__);
+      const dw =
+        Number.isFinite(wSpec) && wSpec > 0
+          ? wSpec
+          : Number.isFinite(expW) && expW > 0
+            ? expW
+            : c.width;
+      const dh =
+        Number.isFinite(hSpec) && hSpec > 0
+          ? hSpec
+          : Number.isFinite(expH) && expH > 0
+            ? expH
+            : c.height;
+      c.style.width = `${dw}px`;
+      c.style.height = `${dh}px`;
+      c.style.imageRendering = 'pixelated';
+      hostEl.innerHTML = '';
+      hostEl.appendChild(c);
+      return;
+    }
+    if (frame.kind === 'pixel' && frame.art) {
+      mountPixelArt(hostEl, frame.art, 80, 80);
+    }
+  }
+
   /** 야적장 플레이어 스프라이트 — 논리 해상도 32×32 (줍는 고철과 동일 그리드). */
   function createDefaultPlayerPixelArt() {
     const w = PIXEL_GRID_W;
@@ -866,22 +967,20 @@ USB허브
 
   let playerSpriteAnimTimer = null;
 
-  async function loadPixelArtFrameSequence(urls) {
-    const arts = [];
+  async function loadPlayerFrameSequenceFromUrls(urls, useNative) {
+    const out = [];
     for (let i = 0; i < urls.length; i += 1) {
-      const u = String(urls[i] || '').trim();
-      if (!u) continue;
-      const a = await rasterizeImageUrlToPixelArt(u, PIXEL_GRID_W, PIXEL_GRID_H);
-      if (a && Array.isArray(a.cells) && Array.isArray(a.palette)) arts.push(a);
+      const fr = await loadPlayerSpriteFrameForUrl(urls[i], useNative);
+      if (fr) out.push(fr);
     }
-    return arts;
+    return out;
   }
 
   /**
    * 폴더에 `{startIndex}.png` … 순으로 읽어 루프 (idle·action 폴더 기본 startIndex=1 → 1.png…, `__PLAYER_*_FRAME_START__` 로 변경).
    * 연속 maxGap번 실패하면 중단.
    */
-  async function discoverPixelArtFramesInDir(dirBase, opts) {
+  async function discoverPlayerFramesInDir(dirBase, opts, useNative) {
     const base = String(dirBase || '').trim().replace(/\/+$/, '');
     if (!base) return [];
     const startIndex =
@@ -894,25 +993,25 @@ USB허브
     const gapRaw = Number(window.__PLAYER_FOLDER_FRAME_GAP_ABORT__);
     const maxGap =
       Number.isFinite(gapRaw) && gapRaw >= 1 ? Math.min(10, Math.floor(gapRaw)) : 3;
-    const arts = [];
+    const frames = [];
     let gap = 0;
     for (let k = 0; k < maxFrames; k += 1) {
       const i = startIndex + k;
-      let a = null;
+      let fr = null;
       for (const ext of ['png', 'webp']) {
-        a = await rasterizeImageUrlToPixelArt(`${base}/${i}.${ext}`, PIXEL_GRID_W, PIXEL_GRID_H);
-        if (a) break;
+        fr = await loadPlayerSpriteFrameForUrl(`${base}/${i}.${ext}`, useNative);
+        if (fr) break;
       }
-      if (a) {
-        arts.push(a);
+      if (fr) {
+        frames.push(fr);
         gap = 0;
       } else {
         gap += 1;
-        if (arts.length > 0 && gap >= maxGap) break;
-        if (arts.length === 0 && k >= 5) break;
+        if (frames.length > 0 && gap >= maxGap) break;
+        if (frames.length === 0 && k >= 5) break;
       }
     }
-    return arts;
+    return frames;
   }
 
   /**
@@ -962,25 +1061,27 @@ USB허브
         ? Math.floor(actionStartRaw)
         : 1;
 
-    let idleArts = [];
+    const useNative = playerNativeFrameSizeEnabled();
+
+    let idleFrames = [];
     if (idleUrls.length) {
-      idleArts = await loadPixelArtFrameSequence(idleUrls);
+      idleFrames = await loadPlayerFrameSequenceFromUrls(idleUrls, useNative);
     } else if (!folderScanOff) {
-      idleArts = await discoverPixelArtFramesInDir(idleDir, { startIndex: idleStart });
+      idleFrames = await discoverPlayerFramesInDir(idleDir, { startIndex: idleStart }, useNative);
     }
 
-    let actionArts = [];
+    let actionFrames = [];
     if (actionUrls.length) {
-      actionArts = await loadPixelArtFrameSequence(actionUrls);
+      actionFrames = await loadPlayerFrameSequenceFromUrls(actionUrls, useNative);
     } else if (!folderScanOff) {
-      actionArts = await discoverPixelArtFramesInDir(actionDir, { startIndex: actionStart });
+      actionFrames = await discoverPlayerFramesInDir(actionDir, { startIndex: actionStart }, useNative);
     }
 
-    if (!idleArts.length && actionArts.length) {
-      idleArts = [createDefaultPlayerPixelArt()];
+    if (!idleFrames.length && actionFrames.length) {
+      idleFrames = [{ kind: 'pixel', art: createDefaultPlayerPixelArt() }];
     }
 
-    if (idleArts.length) {
+    if (idleFrames.length) {
       let frameIdx = 0;
       const msRaw = Number(window.__PLAYER_ANIM_MS__);
       const tickMs =
@@ -989,13 +1090,13 @@ USB허브
         const useAction =
           state === 'MINIGAME' &&
           mini.pressing &&
-          actionArts.length > 0;
-        const seq = useAction ? actionArts : idleArts;
-        const art = seq[frameIdx % seq.length];
+          actionFrames.length > 0;
+        const seq = useAction ? actionFrames : idleFrames;
+        const fr = seq[frameIdx % seq.length];
         frameIdx += 1;
-        mountPixelArt(host, art, 80, 80);
+        mountPlayerSprite(host, fr);
       }, tickMs);
-      mountPixelArt(host, idleArts[0], 80, 80);
+      mountPlayerSprite(host, idleFrames[0]);
       return;
     }
 
@@ -1003,6 +1104,13 @@ USB허브
       typeof window !== 'undefined' && window.__PLAYER_SPRITE_URL__
         ? String(window.__PLAYER_SPRITE_URL__).trim()
         : '';
+    if (useNative && url) {
+      const fr = await loadPlayerSpriteFrameForUrl(url, true);
+      if (fr) {
+        mountPlayerSprite(host, fr);
+        return;
+      }
+    }
     let art = null;
     if (url) {
       art = await rasterizeImageUrlToPixelArt(url, PIXEL_GRID_W, PIXEL_GRID_H);

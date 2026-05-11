@@ -1026,8 +1026,9 @@ html.minigame-active body {
     font-size: 1.08rem;
   }
   .astronaut .pixel-art-canvas {
-    width: 68px !important;
-    height: 68px !important;
+    max-width: min(104px, 32vw);
+    max-height: min(120px, 42vh);
+    /* 인라인 width/height(네이티브 96 등)는 유지 — !important 로 덮지 않음 */
   }
   .lure {
     width: 12px;

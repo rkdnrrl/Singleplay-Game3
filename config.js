@@ -26,6 +26,11 @@
   // 로컬에서 index.html을 file:// 로 열면 `/assets/...` 는 깨지므로 상대 경로 권장.
   window.__PLAYER_SPRITE_URL__ = 'assets/player/player.png';
   //
+  // 96×96 등 큰 픽셀 스프라이트: 아래 두 줄을 켜면 32×32로 줄이지 않고 원본 그리드를 그대로 씀.
+  // 화면에 보이는 크기만 바꾸려면 `__PLAYER_DISPLAY_CSS_W__` / `__PLAYER_DISPLAY_CSS_H__` (비우면 프레임 크기와 동일).
+  window.__PLAYER_FRAME_WIDTH__ = 92;
+  window.__PLAYER_FRAME_HEIGHT__ = 92;
+  //
   // 애니메이션 — `idle/1.png`, `idle/2.png` … (기본 시작 1, `__PLAYER_IDLE_FRAME_START__` 로 0 등 변경 가능)
   // action 도 `action/1.png` … (기본 시작 1, `__PLAYER_ACTION_FRAME_START__`)
   // idle 폴더가 비어 있고 action 만 있으면 대기 화면은 코드 기본 캐릭터, 미니게임 누를 때만 action 루프.
