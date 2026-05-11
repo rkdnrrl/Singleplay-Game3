@@ -1659,7 +1659,10 @@ USB허브
     return { name, type: UNIFIED_TYPE, rarity: 'common', size, coins };
   }
 
-  /** 로그인 시 /api/ai/image — rarity 는 common 만 (희귀 등급 API 사용 안 함) */
+  /**
+   * 로그인 시: Gemini 이름 + DB 공유 캐시(중복 이름 시 PixelLab 생략) → `/api/ai/fishing-common`
+   * 실패 시 폴백: 절차적 이름 유지 + 기존 `/api/ai/image` (rarity common)
+   */
   async function enrichCatchItemWithAi(item) {
     if (!isLoggedIn || !alpToken || !platformApi) {
       return { item, aiArtReady: false };
@@ -1668,6 +1671,46 @@ USB허브
       'Content-Type': 'application/json',
       Authorization: `Bearer ${alpToken}`,
     };
+
+    try {
+      const ctrlGem = new AbortController();
+      const tidGem = setTimeout(() => ctrlGem.abort(), 120000);
+      const resGem = await fetch(`${platformApi}/api/ai/fishing-common`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({}),
+        signal: ctrlGem.signal,
+      });
+      clearTimeout(tidGem);
+      if (resGem.ok) {
+        const data = await resGem.json();
+        let bonusGranted = false;
+        if (data.coins != null && Number.isFinite(Number(data.coins))) {
+          totalCoins = Number(data.coins);
+          updateCoinDisplay();
+          bonusGranted = data.bonusCoins > 0;
+        }
+        if (data.name && typeof data.name === 'string') {
+          const nm = String(data.name).trim();
+          if (nm) item.name = nm;
+        }
+        if (data.emoji && typeof data.emoji === 'string') {
+          item.emoji = String(data.emoji).trim().slice(0, 10);
+        }
+        let aiArtReady = false;
+        if (data.imageUrl) {
+          const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
+          if (art) {
+            item.pixelArt = art;
+            aiArtReady = true;
+          }
+        }
+        return { item, aiArtReady, bonusGranted };
+      }
+    } catch {
+      /* Gemini/통합 API 실패 → 아래 /api/ai/image 폴백 */
+    }
+
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 120000);
