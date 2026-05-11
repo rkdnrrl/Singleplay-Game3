@@ -778,9 +778,8 @@ html.minigame-active body {
 .inv-pixel-preview-host {
   width: 100%;
   min-height: 200px;
-  max-height: min(72vh, 520px);
   border-radius: 12px;
-  overflow: auto;
+  overflow: hidden;
   background: #08081a;
   display: flex;
   align-items: center;
@@ -788,7 +787,16 @@ html.minigame-active body {
   padding: 0.6rem;
   box-sizing: border-box;
 }
-.inv-pixel-preview-host .pixel-art-canvas {
+.inv-pixel-preview-rotator {
+  transform-origin: center center;
+  touch-action: none;
+  cursor: grab;
+  will-change: transform;
+}
+.inv-pixel-preview-rotator:active {
+  cursor: grabbing;
+}
+.inv-pixel-preview-rotator .pixel-art-canvas {
   display: block;
   flex-shrink: 0;
   image-rendering: pixelated;

@@ -1175,6 +1175,8 @@ USB허브
   let sellConfirmPayload = null;
   /** 마우스: 드래그 스크롤 후 뜨는 click 으로 확대 보기가 중복 열리지 않게 */
   let suppressNextInvListClick = false;
+  /** 적재함 픽셀 확대: 드래그 회전 리스너 정리 */
+  let invPixelPreviewRotateTeardown = null;
 
   /** 모바일: 미니게임 중 페이지 스크롤·바운스 차단 + 적재함이 터치 가로채기 방지 */
   let minigameScrollLocked = false;
@@ -1806,13 +1808,98 @@ USB허브
     sellConfirmOverlay.classList.remove('hidden');
   }
 
+  function unwrapAngleDeltaRad(d) {
+    let x = d;
+    while (x > Math.PI) x -= 2 * Math.PI;
+    while (x < -Math.PI) x += 2 * Math.PI;
+    return x;
+  }
+
+  /** 캔버스를 손가띉·마우스로 평면 회전 */
+  function attachInvPixelPreviewRotate(rotEl) {
+    const ac = new AbortController();
+    const opts = { signal: ac.signal };
+    let rotationDeg = 0;
+    const apply = () => {
+      rotEl.style.transform = `rotate(${rotationDeg}deg)`;
+    };
+    let dragging = false;
+    let cx = 0;
+    let cy = 0;
+    let baseDeg = 0;
+    let downAngle = 0;
+
+    function centerOf(el) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+
+    function pointerAngle(e) {
+      return Math.atan2(e.clientY - cy, e.clientX - cx);
+    }
+
+    rotEl.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        dragging = true;
+        try {
+          rotEl.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        const c = centerOf(rotEl);
+        cx = c.x;
+        cy = c.y;
+        baseDeg = rotationDeg;
+        downAngle = pointerAngle(e);
+      },
+      opts,
+    );
+
+    rotEl.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!dragging) return;
+        const d = unwrapAngleDeltaRad(pointerAngle(e) - downAngle);
+        rotationDeg = baseDeg + (d * 180) / Math.PI;
+        apply();
+      },
+      opts,
+    );
+
+    const endDrag = () => {
+      dragging = false;
+    };
+    rotEl.addEventListener('pointerup', endDrag, opts);
+    rotEl.addEventListener('pointercancel', endDrag, opts);
+
+    return () => ac.abort();
+  }
+
+  function resetInvPixelPreviewSurface() {
+    if (invPixelPreviewRotateTeardown) {
+      try {
+        invPixelPreviewRotateTeardown();
+      } catch {
+        /* ignore */
+      }
+      invPixelPreviewRotateTeardown = null;
+    }
+    if (invPixelPreviewHost) {
+      invPixelPreviewHost.innerHTML = '';
+      invPixelPreviewHost.style.height = '';
+    }
+  }
+
   function closeInvPixelPreview() {
+    resetInvPixelPreviewSurface();
     if (invPixelPreviewOverlay) invPixelPreviewOverlay.classList.add('hidden');
-    if (invPixelPreviewHost) invPixelPreviewHost.innerHTML = '';
   }
 
   async function openInventoryPixelPreviewFromItem(item) {
     if (!invPixelPreviewOverlay || !invPixelPreviewHost || !invPixelPreviewTitle) return;
+    resetInvPixelPreviewSurface();
     let art =
       item.pixelArt && item.pixelArt.cells && item.pixelArt.palette
         ? item.pixelArt
@@ -1831,12 +1918,31 @@ USB허브
       return;
     }
     invPixelPreviewTitle.textContent = item.name || '보기';
-    invPixelPreviewHost.innerHTML = '';
     const maxCss = Math.min(window.innerWidth * 0.88, window.innerHeight * 0.68, 520);
     const aw = Math.max(1, art.w | 0);
     const ah = Math.max(1, art.h | 0);
-    const scale = Math.max(2, Math.min(16, Math.floor(maxCss / Math.max(aw, ah))));
-    mountPixelArt(invPixelPreviewHost, art, aw * scale, ah * scale);
+    const hostMax = Math.min(window.innerHeight * 0.58, 500, window.innerWidth * 0.9);
+    let scale = Math.max(2, Math.min(16, Math.floor(maxCss / Math.max(aw, ah))));
+    let cssW = aw * scale;
+    let cssH = ah * scale;
+    let fit = Math.hypot(cssW, cssH) + 48;
+    while (fit > hostMax && scale > 2) {
+      scale -= 1;
+      cssW = aw * scale;
+      cssH = ah * scale;
+      fit = Math.hypot(cssW, cssH) + 48;
+    }
+    invPixelPreviewHost.style.height = `${Math.ceil(Math.min(fit, hostMax))}px`;
+    mountPixelArt(invPixelPreviewHost, art, cssW, cssH);
+    const cv = invPixelPreviewHost.querySelector('canvas');
+    if (cv) {
+      const rot = document.createElement('div');
+      rot.className = 'inv-pixel-preview-rotator';
+      invPixelPreviewHost.removeChild(cv);
+      rot.appendChild(cv);
+      invPixelPreviewHost.appendChild(rot);
+      invPixelPreviewRotateTeardown = attachInvPixelPreviewRotate(rot);
+    }
     invPixelPreviewOverlay.classList.remove('hidden');
   }
 
