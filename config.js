@@ -18,6 +18,10 @@
   // 필요 시 주석 해제
   // window.__ALP_CATCH_GAME_ID__ = 2;
   //
+  // 낚시 장면 위 플레이어 캐릭터 — 원본 32×32 PNG/WebP 권장(다른 비율이면 32×32로 샘플링됨).
+  // 비우면 코드에 있는 기본 우주인 픽셀아트가 쓰입니다.
+  // window.__PLAYER_SPRITE_URL__ = '/assets/player.png';
+  //
   // 에픽·전설 완화 허용 스위치(내부 빌드만 true). 배포는 반드시 false — URL만으로는 켜지지 않음.
   // 켤 때: 여기 true + 페이지에 `?easyEpic=1` 또는 `?testEpic=1` 둘 다 필요.
   window.__ALP_EASY_EPIC_TEST__ = false;

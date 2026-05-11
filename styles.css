@@ -91,11 +91,22 @@ html.minigame-active body {
 /* Fisher scene */
 .fisher-scene { display: flex; flex-direction: column; align-items: center; }
 .astronaut {
-  width: 2.1rem;
-  height: 2.55rem;
-  border-radius: 0.45rem 0.45rem 0.32rem 0.32rem;
-  background: linear-gradient(180deg, #eceff1 0%, #90a4ae 52%, #455a64 100%);
-  box-shadow: 0 0 0 0.1rem rgba(255, 255, 255, 0.35) inset, 0 2px 6px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  border-radius: 0.35rem;
+}
+.player-sprite-host {
+  display: block;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.player-sprite-host .pixel-art-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 .beam-line {
   width: 3px; height: 0;
@@ -779,9 +790,9 @@ html.minigame-active body {
   .hud-value {
     font-size: 1.08rem;
   }
-  .astronaut {
-    width: 1.85rem;
-    height: 2.25rem;
+  .astronaut .pixel-art-canvas {
+    width: 68px !important;
+    height: 68px !important;
   }
   .lure {
     width: 12px;

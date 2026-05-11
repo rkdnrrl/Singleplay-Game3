@@ -743,6 +743,66 @@
     hostEl.appendChild(canvas);
   }
 
+  /** 낚시 장면 기본 플레이어 — 논리 해상도 32×32 (잡은 생명체와 동일 그리드). */
+  function createDefaultPlayerPixelArt() {
+    const w = PIXEL_GRID_W;
+    const h = PIXEL_GRID_H;
+    const palette = [
+      PIXEL_MAT,
+      '#eceff1',
+      '#cfd8dc',
+      '#90a4ae',
+      '#607d8b',
+      '#4fc3f7',
+      '#0277bd',
+      '#37474f',
+      '#fff176',
+    ];
+    const cells = new Array(w * h).fill(0);
+    function rect(x0, y0, x1, y1, c) {
+      for (let y = y0; y <= y1; y += 1) {
+        for (let x = x0; x <= x1; x += 1) {
+          if (x >= 0 && x < w && y >= 0 && y < h) cells[y * w + x] = c;
+        }
+      }
+    }
+    rect(10, 5, 21, 6, 1);
+    rect(9, 7, 22, 13, 1);
+    rect(10, 14, 21, 14, 1);
+    rect(8, 8, 23, 12, 2);
+    rect(9, 6, 22, 7, 2);
+    rect(11, 8, 20, 11, 5);
+    rect(12, 9, 19, 10, 6);
+    rect(9, 8, 9, 12, 4);
+    rect(22, 8, 22, 12, 4);
+    rect(11, 15, 20, 24, 2);
+    rect(12, 16, 19, 23, 1);
+    rect(13, 17, 18, 22, 3);
+    rect(14, 19, 17, 20, 8);
+    rect(7, 17, 10, 21, 2);
+    rect(22, 17, 25, 21, 2);
+    rect(12, 25, 15, 30, 3);
+    rect(17, 25, 20, 30, 3);
+    rect(11, 30, 16, 31, 7);
+    rect(16, 30, 21, 31, 7);
+    return { w, h, palette, cells, fromEmoji: false };
+  }
+
+  async function initPlayerSprite() {
+    const host = document.getElementById('playerSpriteHost');
+    if (!host) return;
+    const url =
+      typeof window !== 'undefined' && window.__PLAYER_SPRITE_URL__
+        ? String(window.__PLAYER_SPRITE_URL__).trim()
+        : '';
+    let art = null;
+    if (url) {
+      art = await rasterizeImageUrlToPixelArt(url, PIXEL_GRID_W, PIXEL_GRID_H);
+    }
+    if (!art) art = createDefaultPlayerPixelArt();
+    mountPixelArt(host, art, 80, 80);
+  }
+
   /** 3D 복셀용 표시 색 (2D 캔버스와 동일 규칙) */
   function voxelDisplayHexForCell(art, cidx) {
     if (cidx === 0) return null;
@@ -2233,6 +2293,7 @@
   })();
 
   /* ── 초기 렌더 ───────────────────────────────────────── */
+  void initPlayerSprite();
   updateCoinDisplay();
   updateCatchesDisplay();
   renderInventory();
