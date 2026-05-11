@@ -24,5 +24,6 @@
   //
   // 야적장 플레이어 스프라이트 — 원본 32×32 PNG/WebP 권장.
   // 비우면 코드에 있는 기본 작업원 픽셀아트가 쓰입니다.
-  // window.__PLAYER_SPRITE_URL__ = '/assets/player.png';
+  // 로컬 파일로 index.html을 열면 `/assets/...` 는 깨지므로 상대 경로 권장.
+  window.__PLAYER_SPRITE_URL__ = 'assets/player/player.png';
 })();

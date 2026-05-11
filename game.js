@@ -714,7 +714,19 @@ USB허브
   async function rasterizeImageUrlToPixelArt(url, w, h) {
     return new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      const s = String(url || '').trim();
+      try {
+        if (!s.startsWith('data:') && !s.startsWith('blob:')) {
+          const abs = new URL(s, window.location.href).href;
+          const here = window.location.origin;
+          if (here && /^https?:/i.test(abs)) {
+            const there = new URL(abs).origin;
+            if (there && there !== here) img.crossOrigin = 'anonymous';
+          }
+        }
+      } catch {
+        /* 상대 경로 등은 crossOrigin 미설정 */
+      }
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
@@ -755,7 +767,7 @@ USB허브
         } catch { resolve(null); }
       };
       img.onerror = () => resolve(null);
-      img.src = url;
+      img.src = s;
     });
   }
 
