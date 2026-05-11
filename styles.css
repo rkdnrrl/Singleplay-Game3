@@ -453,46 +453,6 @@ html.minigame-active body {
   0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.35; }
   50% { transform: translate3d(calc(220px - 3px), 0, 0); opacity: 1; }
 }
-.scan-freq-bars {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 5px;
-  height: 24px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 2px;
-  pointer-events: none;
-  z-index: 0;
-}
-.scan-freq-bars i {
-  flex: 1;
-  max-width: 10px;
-  min-height: 4px;
-  border-radius: 2px 2px 0 0;
-  background: linear-gradient(180deg, #81d4fa 0%, #0277bd 100%);
-  opacity: 0.75;
-  transform-origin: bottom center;
-  animation: scan-bar-bounce 0.42s ease-in-out infinite alternate;
-  box-shadow: 0 0 6px rgba(79, 195, 247, 0.35);
-}
-.scan-freq-bars i:nth-child(1) { height: 9px; animation-delay: 0s; }
-.scan-freq-bars i:nth-child(2) { height: 16px; animation-delay: 0.05s; }
-.scan-freq-bars i:nth-child(3) { height: 11px; animation-delay: 0.1s; }
-.scan-freq-bars i:nth-child(4) { height: 20px; animation-delay: 0.02s; }
-.scan-freq-bars i:nth-child(5) { height: 14px; animation-delay: 0.14s; }
-.scan-freq-bars i:nth-child(6) { height: 22px; animation-delay: 0.08s; }
-.scan-freq-bars i:nth-child(7) { height: 10px; animation-delay: 0.11s; }
-.scan-freq-bars i:nth-child(8) { height: 18px; animation-delay: 0.03s; }
-.scan-freq-bars i:nth-child(9) { height: 12px; animation-delay: 0.16s; }
-.scan-freq-bars i:nth-child(10) { height: 19px; animation-delay: 0.06s; }
-.scan-freq-bars i:nth-child(11) { height: 8px; animation-delay: 0.13s; }
-.scan-freq-bars i:nth-child(12) { height: 15px; animation-delay: 0.09s; }
-@keyframes scan-bar-bounce {
-  from { transform: scaleY(0.35); opacity: 0.45; }
-  to { transform: scaleY(1); opacity: 0.95; }
-}
 .scan-hud-corner {
   position: absolute;
   width: 10px;
