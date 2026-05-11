@@ -846,7 +846,10 @@
   const targetZone        = document.getElementById('targetZone');
   const catchBar          = document.getElementById('catchBar');
   const catchProgressFill = document.getElementById('catchProgressFill');
-  const scanBox           = document.getElementById('scanBox');
+  const scanPanel          = document.getElementById('scanPanel');
+  const scanCountNum       = document.getElementById('scanCountNum');
+  const scanCountdownLine  = document.getElementById('scanCountdownLine');
+  const scanOngoingLine    = document.getElementById('scanOngoingLine');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultRarity      = document.getElementById('resultRarity');
@@ -1593,11 +1596,15 @@
     cfg: null,
   };
 
+  /** 스캔 패널 20→1초 카운터, 이후 "아직 스캔 중" 표시 */
+  let scanCountdownTimer = null;
+
   /* ── 상태 전환 ───────────────────────────────────────── */
   function goIdle() {
     state = 'IDLE';
     setMinigameScrollLocked(false);
     castBtn.classList.remove('hidden');
+    stopScanPanel();
     stopStatusScanning();
     statusMsg.classList.add('hidden');
     minigame.classList.add('hidden');
@@ -1671,7 +1678,7 @@
     // ── AI로 생명체 생성 (로그인 + 에픽·전설만, 일반·희귀는 절차적) ──
     let aiData = null;
     if (isLoggedIn && alpToken && platformApi && rarityUsesAiCatch(rarity)) {
-      showStatusScanning('스캔중');
+      startScanPanelCountdown();
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 16000); // 16초 타임아웃 (PixelLab ~3초)
@@ -1690,6 +1697,9 @@
         }
       } catch {
         // 타임아웃 or 네트워크 오류 → 절차적 폴백
+      }
+      if (!aiData?.name) {
+        stopScanPanel();
       }
     }
 
@@ -1721,8 +1731,7 @@
       item = rollItemFromRarity(rarity);
 
       if ((rarity === 'common' || rarity === 'rare') && isLoggedIn && alpToken && platformApi) {
-        // 스캔 박스 표시
-        if (scanBox) scanBox.classList.remove('hidden');
+        startScanPanelCountdown();
         try {
           const ctrl2 = new AbortController();
           const tid2 = setTimeout(() => ctrl2.abort(), 35000);
@@ -1747,8 +1756,7 @@
         } catch (err) {
           console.error('[AI image] fetch error', err.message || err);
         } finally {
-          // 스캔 박스 숨김
-          if (scanBox) scanBox.classList.add('hidden');
+          stopScanPanel();
         }
       }
     }
@@ -1871,6 +1879,7 @@
 
   /* ── 결과 표시 ───────────────────────────────────────── */
   async function showResult(item) {
+    stopScanPanel();
     stopStatusScanning();
     if (statusMsg) statusMsg.classList.add('hidden');
     resultCard.className = `result-card hidden rarity-${item.rarity}`;
@@ -1952,12 +1961,43 @@
     }
   }
 
-  /** "스캔중" + 점(…) 순차 애니메이션 (CSS `.status-scan-dots`) */
-  function showStatusScanning(label) {
-    if (!statusMsg) return;
-    const base = String(label || '스캔중').replace(/[\s.]+$/g, '');
-    statusMsg.innerHTML = `${base}<span class="status-scan-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span><span>.</span></span>`;
-    statusMsg.classList.remove('hidden');
+  function stopScanPanel() {
+    if (scanCountdownTimer != null) {
+      clearInterval(scanCountdownTimer);
+      scanCountdownTimer = null;
+    }
+    if (scanPanel) scanPanel.classList.add('hidden');
+    if (scanCountdownLine) scanCountdownLine.classList.remove('hidden');
+    if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
+    if (scanCountNum) scanCountNum.textContent = '20';
+  }
+
+  function startScanPanelCountdown() {
+    if (scanCountdownTimer != null) {
+      clearInterval(scanCountdownTimer);
+      scanCountdownTimer = null;
+    }
+    stopStatusScanning();
+    if (statusMsg) statusMsg.classList.add('hidden');
+    if (!scanPanel || !scanCountNum || !scanCountdownLine || !scanOngoingLine) return;
+    scanCountdownLine.classList.remove('hidden');
+    scanOngoingLine.classList.add('hidden');
+    let remaining = 20;
+    scanCountNum.textContent = String(remaining);
+    scanPanel.classList.remove('hidden');
+    scanCountdownTimer = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining >= 1) {
+        scanCountNum.textContent = String(remaining);
+      } else {
+        if (scanCountdownTimer != null) {
+          clearInterval(scanCountdownTimer);
+          scanCountdownTimer = null;
+        }
+        scanCountdownLine.classList.add('hidden');
+        scanOngoingLine.classList.remove('hidden');
+      }
+    }, 1000);
   }
 
   function showStatus(msg) {
