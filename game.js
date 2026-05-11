@@ -921,6 +921,7 @@ USB허브
   const scanCountdownLine  = document.getElementById('scanCountdownLine');
   const scanOngoingLine    = document.getElementById('scanOngoingLine');
   const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
+  const scanBonusLine      = document.getElementById('scanBonusLine');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
   const resultRarity      = document.getElementById('resultRarity');
@@ -975,6 +976,8 @@ USB허브
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
+  /** 로그인 상태에서 AI 이미지 합성까지 끝나면 스캔 패널에 표시 후 적립 */
+  const SCAN_AI_BONUS_COINS = 100;
   let totalCatches = 0;
   let inventory    = []; // { id, name, type, size, rarity, coins, pixelArt? }
   let isSelling    = false;
@@ -1198,7 +1201,9 @@ USB허브
 
   /** 로그인 시 /api/ai/image — rarity 는 common 만 (희귀 등급 API 사용 안 함) */
   async function enrichCatchItemWithAi(item) {
-    if (!isLoggedIn || !alpToken || !platformApi) return item;
+    if (!isLoggedIn || !alpToken || !platformApi) {
+      return { item, aiArtReady: false };
+    }
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${alpToken}`,
@@ -1223,15 +1228,20 @@ USB허브
           totalCoins = Number(data.coins);
           updateCoinDisplay();
         }
+        let aiArtReady = false;
         if (data.imageUrl) {
           const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
-          if (art) item.pixelArt = art;
+          if (art) {
+            item.pixelArt = art;
+            aiArtReady = true;
+          }
         }
+        return { item, aiArtReady };
       }
     } catch {
       /* PixelLab/네트워크 실패 → 절차적 픽셀 폴백 */
     }
-    return item;
+    return { item, aiArtReady: false };
   }
 
   /* ── 적재함(인벤토리) ─────────────────────────────────── */
@@ -1595,6 +1605,7 @@ USB허브
     if (scanPanel) scanPanel.classList.add('hidden');
     if (scanCountdownLine) scanCountdownLine.classList.remove('hidden');
     if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
+    if (scanBonusLine) scanBonusLine.classList.add('hidden');
     if (scanCountNum) scanCountNum.textContent = '20';
     if (scanOngoingElapsed) scanOngoingElapsed.textContent = '1';
   }
@@ -1609,6 +1620,7 @@ USB허브
     if (!scanPanel || !scanCountNum || !scanCountdownLine || !scanOngoingLine) return;
     scanCountdownLine.classList.remove('hidden');
     scanOngoingLine.classList.add('hidden');
+    if (scanBonusLine) scanBonusLine.classList.add('hidden');
     let remaining = seconds;
     scanCountNum.textContent = String(remaining);
     scanPanel.classList.remove('hidden');
@@ -1710,8 +1722,11 @@ USB허브
     startScanPanelCountdown(20);
     const scanT0 = performance.now();
     let item = rollProceduralCatchItem();
+    let aiArtReady = false;
     try {
-      item = await enrichCatchItemWithAi(item);
+      const enriched = await enrichCatchItemWithAi(item);
+      item = enriched.item;
+      aiArtReady = enriched.aiArtReady;
     } catch {
       /* enrich 내부에서 이미 폴백 */
     }
@@ -1719,6 +1734,18 @@ USB허브
     const scanMinMs = 2200;
     if (scanElapsed < scanMinMs) {
       await new Promise((r) => setTimeout(r, scanMinMs - scanElapsed));
+    }
+    if (aiArtReady && isLoggedIn) {
+      totalCoins += SCAN_AI_BONUS_COINS;
+      updateCoinDisplay();
+      if (scanCountdownLine) scanCountdownLine.classList.add('hidden');
+      if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
+      if (scanBonusLine) {
+        const amt = scanBonusLine.querySelector('.scan-bonus-amount');
+        if (amt) amt.textContent = `+${SCAN_AI_BONUS_COINS.toLocaleString()}원`;
+        scanBonusLine.classList.remove('hidden');
+      }
+      await new Promise((r) => setTimeout(r, 2400));
     }
     stopScanPanel();
     currentItem = item;
