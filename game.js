@@ -2392,6 +2392,8 @@ USB허브
 
   /* ── 이벤트 ──────────────────────────────────────────── */
   castBtn.addEventListener('click', () => {
+    const S = window.__ALP_GAME_SOUND__;
+    if (S && typeof S.tryStartMainBgm === 'function') void S.tryStartMainBgm();
     if (state === 'IDLE') goCasting();
   });
 

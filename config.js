@@ -45,6 +45,8 @@
   // window.__PLAYER_ACTION_FRAMES__ = ['assets/player/action/1.png', 'assets/player/action/2.png'];
   //
   // 사운드 — BGM은 `sounds/bgm/`, 효과음은 `sounds/sfx/` (권장 파일명은 `sounds/README.txt` 참고).
-  // window.__ALP_SOUND_BGM_BASE__ = 'sounds/bgm/';
-  // window.__ALP_SOUND_SFX_BASE__ = 'sounds/sfx/';
+  // BGM 끄기: window.__ALP_SOUND_BGM_DISABLED__ = true;
+  // 볼륨 0~1: window.__ALP_SOUND_BGM_VOLUME__ = 0.35;
+  window.__ALP_SOUND_BGM_BASE__ = 'sounds/bgm';
+  window.__ALP_SOUND_SFX_BASE__ = 'sounds/sfx';
 })();
