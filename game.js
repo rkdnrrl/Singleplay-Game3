@@ -853,6 +853,7 @@
   const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
+  const resultEpicCongrats  = document.getElementById('resultEpicCongrats');
   const resultRarity      = document.getElementById('resultRarity');
   const resultName        = document.getElementById('resultName');
   const resultSize        = document.getElementById('resultSize');
@@ -1890,6 +1891,10 @@
     const art = item.pixelArt;
     if (resultSpriteHost) {
       mountPixelArt(resultSpriteHost, art, 128, 128);
+    }
+    if (resultEpicCongrats) {
+      const epicPlus = item.rarity === 'epic' || item.rarity === 'legendary';
+      resultEpicCongrats.classList.toggle('hidden', !epicPlus);
     }
     resultRarity.className  = `result-rarity rarity-${item.rarity}`;
     resultRarity.textContent = RARITY_LABEL[item.rarity];
