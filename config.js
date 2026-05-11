@@ -16,6 +16,12 @@
   // 필요 시 주석 해제
   // window.__ALP_CATCH_GAME_ID__ = 2;
   //
+  // 도감 목록 GET — 기본 `{플랫폼}/api/codex` (Bearer는 URL에 token= 있으면 자동 첨부됨).
+  // 응답: 배열 또는 { items|codex|codexItems|entries|data: [...] }.
+  // 각 항목은 name/itemName 등 + 선택 pixelArt({ w,h,palette,cells }) 가 있으면 배경 플로터로 표시.
+  // window.__ALP_CODEX_API_PATH__ = 'game/codex';
+  // window.__ALP_CODEX_API__ = 'https://example.com/api/codex';
+  //
   // 야적장 플레이어 스프라이트 — 원본 32×32 PNG/WebP 권장.
   // 비우면 코드에 있는 기본 작업원 픽셀아트가 쓰입니다.
   // window.__PLAYER_SPRITE_URL__ = '/assets/player.png';

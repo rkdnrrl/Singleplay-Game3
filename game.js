@@ -1070,6 +1070,8 @@ USB허브
 
     let stars = [];
     let pixelFloaters = [];
+    /** 플랫폼 도감 API(`__ALP_CODEX_API_PATH__` 등)로 받은 항목 — 배경에 추가 플로터로 표시 */
+    let codexCache = null;
 
     function wrapCoord(v, max) {
       const pad = 80;
@@ -1129,6 +1131,130 @@ USB허브
       return floater;
     }
 
+    function normalizeCodexResponse(data) {
+      if (!data) return [];
+      let arr = null;
+      if (Array.isArray(data)) arr = data;
+      else if (Array.isArray(data.items)) arr = data.items;
+      else if (Array.isArray(data.codex)) arr = data.codex;
+      else if (Array.isArray(data.codexItems)) arr = data.codexItems;
+      else if (Array.isArray(data.entries)) arr = data.entries;
+      else if (data.data && Array.isArray(data.data)) arr = data.data;
+      if (!arr || !arr.length) return [];
+      return arr.filter((e) => {
+        if (!e || typeof e !== 'object') return false;
+        return Boolean(
+          e.name ||
+            e.itemName ||
+            e.title ||
+            e.label ||
+            e.item ||
+            (e.pixelArt && e.pixelArt.cells),
+        );
+      });
+    }
+
+    /** 서버 `pixelArt` JSON → 배경 래스터용 (w×h === cells 권장) */
+    function sanitizedCodexPixelArt(pa) {
+      if (!pa || !Array.isArray(pa.cells) || pa.cells.length < 4) return null;
+      const palIn = Array.isArray(pa.palette) ? pa.palette : [];
+      const palette = [PIXEL_MAT];
+      for (let i = 0; i < palIn.length && palette.length < 48; i += 1) {
+        const hx = String(palIn[i] || '').trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(hx)) palette.push(hx.toLowerCase());
+      }
+      if (palette.length < 2) return null;
+      let w = Number(pa.w) | 0;
+      let h = Number(pa.h) | 0;
+      const clen = pa.cells.length;
+      const cells = pa.cells.map((c) => Number(c) | 0);
+      if (w > 0 && h > 0 && w * h === clen) {
+        return { w, h, palette, cells, fromEmoji: !!pa.fromEmoji };
+      }
+      const side = Math.round(Math.sqrt(clen));
+      if (side >= 4 && side * side === clen) {
+        return { w: side, h: side, palette, cells, fromEmoji: !!pa.fromEmoji };
+      }
+      if (w > 0 && h > 0 && w * h !== clen) {
+        const need = w * h;
+        if (cells.length >= need) {
+          return {
+            w,
+            h,
+            palette,
+            cells: cells.slice(0, need),
+            fromEmoji: !!pa.fromEmoji,
+          };
+        }
+      }
+      return null;
+    }
+
+    function makeFloaterFromCodexEntry(entry, mobileLight, index) {
+      const name =
+        (entry &&
+          (entry.name ||
+            entry.itemName ||
+            entry.title ||
+            entry.label ||
+            (entry.item != null ? String(entry.item) : ''))) ||
+        '고철';
+      const size =
+        entry && entry.size != null && Number.isFinite(Number(entry.size))
+          ? Number(entry.size)
+          : rollSize();
+      const item = {
+        name,
+        type: (entry && (entry.itemType || entry.type)) || UNIFIED_TYPE,
+        rarity: 'common',
+        size,
+      };
+      let art0 = entry && entry.pixelArt ? sanitizedCodexPixelArt(entry.pixelArt) : null;
+      if (!art0) {
+        const rustAlt = (index & 1) === 0;
+        const base = hashPixelArtSeed(item);
+        const pickSeed = rustAlt ? base ^ 0x5f356496 : base ^ 0x2b7e1516;
+        art0 = generateProceduralPixelArtFromItem(item, pickSeed, rustAlt);
+      }
+      const scale = mobileLight ? 2 : 2 + (Math.random() < 0.32 ? 1 : 0);
+      const bmp = rasterizePixelArtForBg(art0, scale);
+      const speedMul = mobileLight ? 0.42 : 1;
+      const speed = reducedMotion ? 0 : (0.05 + Math.random() * 0.36) * speedMul;
+      const ang = Math.random() * Math.PI * 2;
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.55),
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.003 - 0.0015) * speedMul,
+        bmp,
+        alpha: mobileLight ? 0.58 + Math.random() * 0.12 : 0.78 + Math.random() * 0.18,
+        halfW: bmp.width / 2,
+        halfH: bmp.height / 2,
+        _bgScale: scale,
+      };
+    }
+
+    function rebuildPixelFloaters(mobileLight) {
+      const area = canvas.width * canvas.height;
+      const n = mobileLight
+        ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
+        : Math.min(34, Math.max(14, Math.floor(area / 26000)));
+      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
+      if (codexCache && codexCache.length) {
+        const extra = Math.min(
+          codexCache.length,
+          Math.min(28, Math.max(5, Math.floor(area / 48000))),
+        );
+        for (let i = 0; i < extra; i += 1) {
+          pixelFloaters.push(
+            makeFloaterFromCodexEntry(codexCache[i % codexCache.length], mobileLight, i + 4096),
+          );
+        }
+      }
+    }
+
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -1146,11 +1272,33 @@ USB허브
         vx: reducedMotion ? 0 : (Math.random() * 0.06 + 0.008) * (Math.random() < 0.5 ? -1 : 1),
         vy: reducedMotion ? 0 : (Math.random() * 0.05 + 0.006) * (Math.random() < 0.5 ? -1 : 1),
       }));
-      const area = canvas.width * canvas.height;
-      const n = mobileLight
-        ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
-        : Math.min(34, Math.max(14, Math.floor(area / 26000)));
-      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
+      rebuildPixelFloaters(mobileLight);
+    }
+
+    function loadCodexFromServer() {
+      if (!platformApi) return;
+      const full =
+        typeof window.__ALP_CODEX_API__ === 'string' && String(window.__ALP_CODEX_API__).trim();
+      const pathRaw = window.__ALP_CODEX_API_PATH__;
+      const path =
+        pathRaw != null && String(pathRaw).trim()
+          ? String(pathRaw).trim()
+          : 'codex';
+      const url = full
+        ? String(window.__ALP_CODEX_API__).trim()
+        : `${platformApi}/api/${path.replace(/^\/+/, '')}`;
+      const headers = {};
+      if (alpToken) headers.Authorization = `Bearer ${alpToken}`;
+      fetch(url, { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const list = normalizeCodexResponse(data);
+          if (!list.length) return;
+          codexCache = list;
+          resize();
+        })
+        .catch(() => {});
     }
 
     function drawPixelFloater(f) {
@@ -1185,6 +1333,7 @@ USB허브
     }
 
     resize();
+    loadCodexFromServer();
     window.addEventListener('resize', resize);
     draw();
   })();
