@@ -1224,9 +1224,11 @@ USB허브
       clearTimeout(tid);
       if (res.ok) {
         const data = await res.json();
+        let bonusGranted = false;
         if (data.coins != null && Number.isFinite(Number(data.coins))) {
-          totalCoins = Number(data.coins);
+          totalCoins = Number(data.coins); // 서버 확정값으로 동기화
           updateCoinDisplay();
+          bonusGranted = data.bonusCoins > 0;
         }
         let aiArtReady = false;
         if (data.imageUrl) {
@@ -1236,7 +1238,7 @@ USB허브
             aiArtReady = true;
           }
         }
-        return { item, aiArtReady };
+        return { item, aiArtReady, bonusGranted };
       }
     } catch {
       /* PixelLab/네트워크 실패 → 절차적 픽셀 폴백 */
@@ -1723,10 +1725,12 @@ USB허브
     const scanT0 = performance.now();
     let item = rollProceduralCatchItem();
     let aiArtReady = false;
+    let bonusGranted = false;
     try {
       const enriched = await enrichCatchItemWithAi(item);
       item = enriched.item;
       aiArtReady = enriched.aiArtReady;
+      bonusGranted = enriched.bonusGranted ?? false;
     } catch {
       /* enrich 내부에서 이미 폴백 */
     }
@@ -1735,8 +1739,8 @@ USB허브
     if (scanElapsed < scanMinMs) {
       await new Promise((r) => setTimeout(r, scanMinMs - scanElapsed));
     }
-    if (aiArtReady && isLoggedIn) {
-      totalCoins += SCAN_AI_BONUS_COINS;
+    // totalCoins 는 enrichCatchItemWithAi 에서 서버값으로 이미 동기화됨 — 중복 가산 금지
+    if (bonusGranted && isLoggedIn) {
       updateCoinDisplay();
       if (scanCountdownLine) scanCountdownLine.classList.add('hidden');
       if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
