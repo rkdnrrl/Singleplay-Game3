@@ -1,6 +1,69 @@
 (function () {
   'use strict';
 
+  /** 대장장이(Singleplay-Game5)와 공유: 재료 스냅샷 · 제작에 소모된 uid (다른 탭 동기화) */
+  const FORGE_MATERIALS_KEY = 'WEB_ALP_SPACE_FISHING_FORGE_V1';
+  const FORGE_SPENT_UIDS_KEY = 'WEB_ALP_FORGE_SPENT_UIDS_V1';
+
+  function forgeRandomUid() {
+    return `loc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function getForgeSpentSet() {
+    try {
+      const raw = localStorage.getItem(FORGE_SPENT_UIDS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function itemForgeUid(item) {
+    if (item.uid) return item.uid;
+    if (item.id != null && item.id !== '') {
+      item.uid = `srv-${String(item.id)}`;
+      return item.uid;
+    }
+    item.uid = forgeRandomUid();
+    return item.uid;
+  }
+
+  function persistForgeMaterials() {
+    try {
+      const items = inventory.map((i) => {
+        const uid = itemForgeUid(i);
+        if (!i.uid) i.uid = uid;
+        return {
+          uid,
+          name: i.name,
+          rarity: i.rarity,
+          size: i.size,
+          coins: i.coins,
+          serverId: i.id != null ? i.id : null,
+        };
+      });
+      localStorage.setItem(
+        FORGE_MATERIALS_KEY,
+        JSON.stringify({ v: 1, items, updatedAt: Date.now(), source: 'space-fishing' })
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function filterInventoryByForgeSpent() {
+    const spent = getForgeSpentSet();
+    if (spent.size === 0) return;
+    inventory = inventory.filter((i) => !spent.has(itemForgeUid(i)));
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key !== FORGE_SPENT_UIDS_KEY) return;
+    filterInventoryByForgeSpent();
+    renderInventory();
+  });
+
   /* ── 절차적 아이템 (희귀도 = 이름 멋짐·예쁨 점수 기반) ─── */
   const RARITY_LABEL = { common: '일반', rare: '희귀', epic: '에픽', legendary: '전설' };
 
@@ -1326,9 +1389,13 @@
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.catches?.length) {
+          const spent = getForgeSpentSet();
           data.catches.forEach(c => {
+            const uid = `srv-${c.id}`;
+            if (spent.has(uid)) return;
             inventory.push({
               id: c.id,
+              uid,
               name: c.itemName,
               type: c.itemType || UNIFIED_TYPE,
               size: c.size != null ? c.size : 20,
@@ -1395,7 +1462,7 @@
     }
 
     /** index 짝수: 해양, 홀수: 우주·잔해 등 일반 이름 */
-    function makePixelFloater(index) {
+    function makePixelFloater(index, mobileLight) {
       const marine = (index & 1) === 0;
       const name = marine ? generateBackgroundMarineName() : generateCatchName();
       const rarity = rarityFromName(name);
@@ -1405,9 +1472,12 @@
       const pickSeed = marine ? base ^ 0x9e3779b9 : base;
       const emoji = pickEmojiForItem(item.name, pickSeed, marine);
       const art0 = rasterizeEmojiToPixelArtFillText(emoji, PIXEL_GRID_W, PIXEL_GRID_H, base);
-      const scale = 2 + (Math.random() < 0.28 ? 1 : 0);
+      const scale = mobileLight
+        ? 2
+        : 2 + (Math.random() < 0.28 ? 1 : 0);
       const bmp = rasterizePixelArtForBg(art0, scale);
-      const speed = reducedMotion ? 0 : 0.05 + Math.random() * 0.38;
+      const speedMul = mobileLight ? 0.42 : 1;
+      const speed = reducedMotion ? 0 : (0.05 + Math.random() * 0.38) * speedMul;
       const ang = Math.random() * Math.PI * 2;
       const floater = {
         x: Math.random() * canvas.width,
@@ -1415,9 +1485,9 @@
         vx: Math.cos(ang) * speed,
         vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.55),
         rot: Math.random() * Math.PI * 2,
-        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.003 - 0.0015),
+        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.003 - 0.0015) * speedMul,
         bmp,
-        alpha: 0.72 + Math.random() * 0.2,
+        alpha: mobileLight ? 0.52 + Math.random() * 0.14 : 0.72 + Math.random() * 0.2,
         halfW: bmp.width / 2,
         halfH: bmp.height / 2,
         _bgScale: scale,
@@ -1435,7 +1505,12 @@
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      stars = Array.from({ length: 88 }, () => ({
+      const mobileLight =
+        isMobileViewport ||
+        (typeof window.matchMedia === 'function' &&
+          window.matchMedia('(max-width: 520px)').matches);
+      const starCount = mobileLight ? 38 : 88;
+      stars = Array.from({ length: starCount }, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         r: Math.random() * 1.4 + 0.3,
@@ -1445,8 +1520,10 @@
         vy: reducedMotion ? 0 : (Math.random() * 0.05 + 0.006) * (Math.random() < 0.5 ? -1 : 1),
       }));
       const area = canvas.width * canvas.height;
-      const n = Math.min(34, Math.max(14, Math.floor(area / 26000)));
-      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i));
+      const n = mobileLight
+        ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
+        : Math.min(34, Math.max(14, Math.floor(area / 26000)));
+      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
     }
 
     function drawPixelFloater(f) {
@@ -1621,6 +1698,7 @@
       inventoryList.appendChild(el);
     });
     syncInventoryScrollOverflow();
+    persistForgeMaterials();
   }
 
   function closeSellConfirm() {
@@ -1956,7 +2034,7 @@
       showStatus('🎨 AI가 생명체를 그리는 중...');
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 20000); // 20초 타임아웃 (DALL-E 포함)
+        const tid = setTimeout(() => ctrl.abort(), 16000); // 16초 타임아웃 (PixelLab ~3초)
         const aiRes = await fetch(`${platformApi}/api/ai/catch`, {
           method: 'POST',
           headers: {
@@ -2174,8 +2252,10 @@
       item.pixelArt = await generateCatchPixelArt(item);
     }
     const localPixelArt = item.pixelArt;
+    const newUid = catchId != null ? `srv-${catchId}` : forgeRandomUid();
     inventory.unshift({
       id: catchId,
+      uid: newUid,
       name: item.name,
       type: item.type,
       size: item.size,
