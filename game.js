@@ -64,25 +64,8 @@
     renderInventory();
   });
 
-  /* ── 절차적 아이템 (희귀도 = 이름 멋짐·예쁨 점수 기반) ─── */
-  const RARITY_LABEL = { common: '잡철', rare: '선별', epic: '우량', legendary: '특급' };
-
-  /** 이름에 걸리면 등급 점수(prestige)에 가산 — 고철·비철·설비 느낌 */
-  const NAME_PRESTIGE_LEGEND = [
-    '터보발전', '메인샤프트', '압연기', '냉연', '합금강', '전기로', '대형모터', '크랭크샤프트',
-  ];
-  const NAME_PRESTIGE_EPIC = [
-    '스테인리스', '동선', '알루미늄', '전기아연', '크롬', '니켈', '티타늄', '브론즈',
-    '하이텐', 'SNCM', 'SCM', 'SUS',
-  ];
-  const NAME_PRESTIGE_RARE = [
-    '형강', '철근', '각재', '파이프', '플랜지', '밸브', '유니버설', '기어', '베어링',
-  ];
-  const NAME_PRESTIGE_PRETTY = [
-    '광택', '도금', '연동', '압연', '냉간', '정밀', '가공', '절단', '레이저', '용접',
-    '크롬', '아연',
-  ];
-  const NAME_PRESTIGE_DRAB = ['슬래그', '철가루', '찌꺼기', '혼입', '(손상)', '불명'];
+  /* ── 절차적 아이템 (희귀도 없음 — 표시·저장은 모두 일반) ─── */
+  const RARITY_LABEL = { common: '일반' };
 
   /** API·저장용 타입 — 고철 스크랩 */
   const UNIFIED_TYPE = 'scrap';
@@ -116,7 +99,7 @@
     },
   };
 
-  /** 이름 조합 확장 — 야드·압연·비철 용어 */
+  /** 이름 조합 확장 — 야드·압연·비철 용어 (mod×body 만 단위 이상 확보) */
   const NAME_CATCH_MOD_EXT = `
 야적장 선별장 압연로 냉연로 가열로 전기로 고로 슬래그장 비철장 차대번호 열처리 냉각
 자력선별 바스켓 크레인 지게차 포크립 클램프 절단라인 프레스 브레이크 샤링 단조
@@ -124,14 +107,35 @@
 도금라인 연동산세 전기아연 크롬도금 니켈도금 인산염 피막 샌드블라스트 분체도장
 적재단위 화물표준 중량표준 수분검사 성분검사 스펙트럼 XRF 촉매회수 슬러지
 압연재 냉연판 열연판 아연도판 동판 알루미늄판 스테인판 철근콘크리트 프리캐스트
+입고검사 출고검사 적재한도 중량표시 번들마킹 컨테이너마킹 벌크하역 로딩덱 언로딩
+연주기록 히트넘버 로트추적 표면검사 두께측정 폭측정 길이측정 직진도 캔버각
+녹제거라인 산세처리 폐수처리 슬러지건조 여과압력 증발농축 중화조 응집조
+RH탈가스 VD처리 연속주조 라들예열 타격압축 스크랩압철 전로투입 배합비
+슬래그포집 분진집진 정전분리 유입조 비철선별 동선분리 알루미늄선 스테인선
+아연슬러지 대차정비 궤도정비 신호기 교량하부 연마라인 버핑라인 표면처리
+코팅두께 밀착검사 경도검사 인장검사 굽힘시험 충격시험 금속현미경 재령관리
+재령검사 예열로 균열검사 초음파탐상 마그넷픽업 전자석분리 용착검사 침투탐상
+매끈도검사 엣지트리밍 비드절단 번들결속 표면코팅 패시베이션 입하대기 출하대기
+야드순회 적재고도 적재균형 적재검증 적재사진 적재전표 적재라벨 적재바코드
 `.trim().split(/\s+/).filter(Boolean);
 
   const NAME_CATCH_BODY_EXT = `
-볼트 너트 와셔 스프링 핀 리벳 클램프 브래킷 샤프트 키웨이 스플라인 플랜지 게이트밸브
+볼트 너트 와셔 스프링 핀 리벳 라쳇클램프 브래킷 샤프트 키웨이 스플라인 플랜지 게이트밸브
 글로브밸브 체크밸브 버터플라이 커플링 호스 니플 엘보 티 레듀서 캡 엔드플레이트
 기어 랙 피니언 스프로킷 체인 스프로킷 토크렌치 임팩트 그라인더 디스크 절단석
 전동공구 에어호스 콤프레서 필터 오일필터 에어필터 라디에터 인터쿨러 터보차저
 배터리 단자 퓨즈 릴레이 스타터 발전기 모터 인버터 PLC 센서 엔코더 리미트스위치
+오일스틱 대팻대 크로스헤드 가이드핀 슬라이드베드 콜릿 척어댑터 밀링커터 리머
+탭드릴 엔드밀홀더 지그베이스 클램프암 스위벨패드 톱니망대 별기어 행성기어
+디퍼케이스 반축 유니조인트 드라이브플랜지 브레이크패드 마스터펌프 휠허브
+베어링씰 오일가스켓 헤드가스켓 스터드볼트 플러그스크류 엔진마운트 미션마운트
+바디마운트 와이퍼암 도어체크 힌지핀 스트라이크 콘솔브래킷 배선덕트 케이블가이드
+헤드렌즈 후미등렌즈 리플렉터 퓨엘펌프 레귤레이터 인젝션레일 크랭크센서 온도센서
+압력센서 MAP센서 O2센서 노크센서 스로틀바디 아이들밸브 EGR밸브 PCV밸브
+연료레일 인젝터씰 흡기매니폴드 배기매니폴드 다운매니폴드 크랭크풀리 하모닉댐퍼
+타이밍체인 텐셔너 체인가이드 워터펌프 테모스탯 팬클러치 라디에이터캡 오버플로우탱크
+브레이크호스 클러치호스 파워호스 리턴호스 서보모터 스텝모터 리니어베어링 볼나트
+리니어가이드 LM블록 볼스크류 리드스크류 커플링허브 키웨이샤프트 스플라인허브
 `.trim().split(/\s+/).filter(Boolean);
 
   /** 이름 토큰 → 픽셀 실루엣 종류 (ingot·wire·plate·machine·shard) */
@@ -251,7 +255,6 @@
 
   /**
    * 줍는 고철 이름 — 확장 풀(mod×body)로 조합 수 확보.
-   * 등급 점수는 NAME_PRESTIGE·NAME_PARTS 단어가 그대로 걸리도록 유지.
    */
   function generateCatchName() {
     const allCore = SILHOUETTE_TYPES.flatMap((k) => cores(k));
@@ -313,124 +316,28 @@
     return name || `${pick(pre)} ${pick(short)}`;
   }
 
-  /** 키워드·기호만 반영 (길이 보정은 prestigeFromName에서) */
-  function intrinsicPrestigeFromName(name) {
-    let s = 0;
-    let leg = 0;
-    for (let i = 0; i < NAME_PRESTIGE_LEGEND.length; i += 1) {
-      if (name.includes(NAME_PRESTIGE_LEGEND[i])) leg += 1;
-    }
-    s += Math.min(44, leg * 24);
-
-    for (let i = 0; i < NAME_PRESTIGE_EPIC.length; i += 1) {
-      if (name.includes(NAME_PRESTIGE_EPIC[i])) s += 11;
-    }
-    for (let i = 0; i < NAME_PRESTIGE_RARE.length; i += 1) {
-      if (name.includes(NAME_PRESTIGE_RARE[i])) s += 7;
-    }
-    for (let i = 0; i < NAME_PRESTIGE_PRETTY.length; i += 1) {
-      if (name.includes(NAME_PRESTIGE_PRETTY[i])) s += 5;
-    }
-    for (let i = 0; i < NAME_PRESTIGE_DRAB.length; i += 1) {
-      if (name.includes(NAME_PRESTIGE_DRAB[i])) s -= 14;
-    }
-
-    if (/[αβΩ]/.test(name)) s += 11;
-    if (/Ⅱ/.test(name)) s += 9;
-    if (name.includes('(불명)')) s += 5;
-    if (name.includes('Lot')) s += 6;
-    if (/SUS|SCM|SNCM/i.test(name)) s += 10;
-
-    return s;
+  function sizeRangeForRarity() {
+    return [3, 38];
   }
 
-  /**
-   * 0~100: 짧은데 시그널이 강하면 ↑, 긴데 멋진 단어 밀도가 낮으면 ↓
-   */
-  function prestigeFromName(name) {
-    const trimmed = String(name || '').trim();
-    if (!trimmed) return 0;
-
-    let s = intrinsicPrestigeFromName(trimmed);
-    const words = trimmed.split(/\s+/).filter(Boolean);
-    const w = words.length;
-    const c = [...trimmed].length;
-    const perWord = s / Math.max(1, w);
-
-    if (w <= 2 && s >= 22) {
-      s += 18;
-    } else if (w === 3 && perWord >= 10) {
-      s += 14;
-    } else if (w <= 4 && perWord >= 12) {
-      s += 10;
-    } else if (w <= 4 && perWord >= 8) {
-      s += 5;
-    }
-
-    if (w >= 5 && perWord < 6) {
-      s -= Math.min(38, (w - 4) * 9 + (perWord < 3.5 ? 14 : 0));
-    }
-    if (w >= 6 && s < 28) {
-      s -= Math.min(22, (w - 5) * 6);
-    }
-
-    if (c >= 22 && perWord < 5.5) {
-      s -= Math.min(20, Math.floor((c - 18) / 3) * 4);
-    }
-
-    if (w <= 2 && s < 10) {
-      s -= 6;
-    }
-
-    return Math.max(0, Math.min(100, s));
-  }
-
-  /** prestige + 약간의 랜덤으로 최종 희귀도 */
-  function rarityFromName(name) {
-    const p = prestigeFromName(name);
-    const noise = (Math.random() - 0.5) * 16;
-    const t = Math.max(0, Math.min(100, p + noise)) / 100;
-
-    const wCommon = Math.max(3, 76 * (1 - t * 0.9));
-    const wRare = 14 + t * 36;
-    const wEpic = 7 + t * 40;
-    const wLeg = 1 + t * 52;
-
-    let r = Math.random() * (wCommon + wRare + wEpic + wLeg);
-    if ((r -= wCommon) <= 0) return 'common';
-    if ((r -= wRare) <= 0) return 'rare';
-    if ((r -= wEpic) <= 0) return 'epic';
-    return 'legendary';
-  }
-
-  function sizeRangeForRarity(rarity) {
-    const R = {
-      common:    [3, 38],
-      rare:      [22, 110],
-      epic:      [55, 380],
-      legendary: [180, 980],
-    };
-    return R[rarity] || R.common;
-  }
-
-  function rollSize(rarity) {
-    const [lo, hi] = sizeRangeForRarity(rarity);
+  function rollSize() {
+    const [lo, hi] = sizeRangeForRarity();
     const u = Math.random();
-    const skew = rarity === 'legendary' ? 0.65 : rarity === 'epic' ? 0.55 : 0.45;
+    const skew = 0.45;
     const t = Math.pow(u, skew);
     return +((lo + t * (hi - lo)) * (0.92 + Math.random() * 0.08)).toFixed(1);
   }
 
-  function computeCoinValue(rarity, size, type) {
-    const base = { common: 5, rare: 28, epic: 95, legendary: 420 }[rarity] || 5;
-    const [lo, hi] = sizeRangeForRarity(rarity);
+  function computeCoinValue(size, type) {
+    const base = 5;
+    const [lo, hi] = sizeRangeForRarity();
     const mid = (lo + hi) / 2;
     const sizeBoost = Math.pow(Math.max(0.35, size / mid), 0.5);
     const typeMul = 1;
     const jitter = 0.88 + Math.random() * 0.26;
     const raw = base * sizeBoost * typeMul * jitter;
     const rounded = Math.round(raw);
-    return Math.max(rarity === 'legendary' ? 120 : rarity === 'epic' ? 35 : rarity === 'rare' ? 8 : 2, rounded);
+    return Math.max(2, rounded);
   }
 
   /* ── 픽셀 스프라이트 (DB JSON + 화면 표시) ───────────── */
@@ -682,7 +589,7 @@
       name: row.name,
       type: row.type || UNIFIED_TYPE,
       size: row.size != null ? row.size : 20,
-      rarity: row.rarity || 'common',
+      rarity: 'common',
     };
   }
 
@@ -795,7 +702,7 @@
   const VOXEL_LAYER_HEIGHT = 0.86;
   const VOXEL_PLAN = 0.9;
 
-  /** 희귀할수록 판정 타이트·속도↑·게이지 벌칙↑ (전설은 매우 어렵게) */
+  /** 미니게임 난이도 (등급 구분 없음) */
   const MINI_CONFIG = {
     common: {
       zoneRatio: 0.42,
@@ -806,60 +713,6 @@
       gainMul: 1.22,
       lossMul: 0.78,
       overlapNeed: 0.28,
-    },
-    rare: {
-      zoneRatio: 0.30,
-      speed: 86,
-      erratic: false,
-      erraticChance: 0.004,
-      barRatio: 0.21,
-      gainMul: 1.0,
-      lossMul: 1.05,
-      overlapNeed: 0.36,
-    },
-    epic: {
-      zoneRatio: 0.20,
-      speed: 128,
-      erratic: true,
-      erraticChance: 0.014,
-      barRatio: 0.185,
-      gainMul: 0.68,
-      lossMul: 1.42,
-      overlapNeed: 0.44,
-    },
-    legendary: {
-      zoneRatio: 0.11,
-      speed: 188,
-      erratic: true,
-      erraticChance: 0.032,
-      barRatio: 0.155,
-      gainMul: 0.42,
-      lossMul: 2.05,
-      overlapNeed: 0.54,
-    },
-  };
-
-  /** easy 모드( config 플래그 AND ?easyEpic=1 )일 때 에픽·전설 미니게임만 희귀급에 가깝게 완화 */
-  const MINI_EPIC_SOFT = {
-    epic: {
-      zoneRatio: 0.30,
-      speed: 86,
-      erratic: false,
-      erraticChance: 0,
-      barRatio: 0.20,
-      gainMul: 1.05,
-      lossMul: 0.92,
-      overlapNeed: 0.32,
-    },
-    legendary: {
-      zoneRatio: 0.26,
-      speed: 96,
-      erratic: true,
-      erraticChance: 0.006,
-      barRatio: 0.19,
-      gainMul: 0.9,
-      lossMul: 1.05,
-      overlapNeed: 0.35,
     },
   };
 
@@ -882,7 +735,6 @@
   const scanOngoingElapsed = document.getElementById('scanOngoingElapsed');
   const resultCard        = document.getElementById('resultCard');
   const resultSpriteHost  = document.getElementById('resultSpriteHost');
-  const resultEpicCongrats  = document.getElementById('resultEpicCongrats');
   const resultRarity      = document.getElementById('resultRarity');
   const resultName        = document.getElementById('resultName');
   const resultSize        = document.getElementById('resultSize');
@@ -932,14 +784,6 @@
     const n = Number(window.__ALP_CATCH_GAME_ID__);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2;
   })();
-
-  /**
-   * 에픽·전설 테스트: 비중↑ · 미니게임 완화.
-   * **둘 다** 만족할 때만 켜짐 — 배포에서 `__ALP_EASY_EPIC_TEST__` 를 false 두면 `?easyEpic=1` 만으로는 적용 안 됨.
-   */
-  const easyEpicTest =
-    window.__ALP_EASY_EPIC_TEST__ === true &&
-    (urlParams.get('easyEpic') === '1' || urlParams.get('testEpic') === '1');
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
@@ -1000,7 +844,7 @@
               name: c.itemName,
               type: c.itemType || UNIFIED_TYPE,
               size: c.size != null ? c.size : 20,
-              rarity: c.rarity,
+              rarity: 'common',
               coins: c.coinValue,
               pixelArt: c.pixelArt || null,
             });
@@ -1066,9 +910,8 @@
     function makePixelFloater(index, mobileLight) {
       const rustAlt = (index & 1) === 0;
       const name = rustAlt ? generateBackgroundScrapName() : generateCatchName();
-      const rarity = rarityFromName(name);
-      const size = rollSize(rarity);
-      const item = { name, type: UNIFIED_TYPE, rarity, size };
+      const size = rollSize();
+      const item = { name, type: UNIFIED_TYPE, rarity: 'common', size };
       const base = hashPixelArtSeed(item);
       const pickSeed = rustAlt ? base ^ 0x9e3779b9 : base;
       const art0 = generateProceduralPixelArtFromItem(item, pickSeed, rustAlt);
@@ -1157,114 +1000,45 @@
 
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
 
-  /** 이름 없이 희귀도만 랜덤으로 결정 (미니게임 시작 전에 사용)
-   *  기본: common 90% / rare 7% / epic 2.5% / legendary 0.5%
-   *  easy 모드: common 22% / rare 28% / epic 38% / legendary 12%
-   */
-  function rollRarity() {
-    let wC; let wR; let wE; let wL;
-    if (easyEpicTest) {
-      wC = 22;
-      wR = 28;
-      wE = 38;
-      wL = 12;
-    } else {
-      wC = 180;
-      wR = 14;
-      wE = 5;
-      wL = 1;
-    }
-    let r = Math.random() * (wC + wR + wE + wL);
-    if ((r -= wC) <= 0) return 'common';
-    if ((r -= wR) <= 0) return 'rare';
-    if ((r -= wE) <= 0) return 'epic';
-    return 'legendary';
-  }
-
-  /** 희귀도가 정해진 후 크기·코인·절차적 이름까지 완성 (AI 폴백용) */
-  function rollItemFromRarity(rarity) {
+  /** 절차적 이름·크기·코인 (등급은 항상 일반) */
+  function rollProceduralCatchItem() {
     const name = generateCatchName();
-    const size = rollSize(rarity);
-    const coins = computeCoinValue(rarity, size, UNIFIED_TYPE);
-    return { name, type: UNIFIED_TYPE, rarity, size, coins };
+    const size = rollSize();
+    const coins = computeCoinValue(size, UNIFIED_TYPE);
+    return { name, type: UNIFIED_TYPE, rarity: 'common', size, coins };
   }
 
-  function rollItem() {
-    const name = generateCatchName();
-    const rarity = rarityFromName(name);
-    const size = rollSize(rarity);
-    const coins = computeCoinValue(rarity, size, UNIFIED_TYPE);
-    return { name, type: UNIFIED_TYPE, rarity, size, coins };
-  }
-
-  /**
-   * 로그인 시: 일반·희귀 → /api/ai/image (PixelLab 완료까지 대기, 서버가 shared_pixel_arts에 `shared:scrapyard:` 키로 캐시)
-   * 에픽·전설 → /api/ai/catch (공유 DB 없이 유저 캐치에만 저장)
-   */
+  /** 로그인 시 /api/ai/image (PixelLab 완료까지 대기, 서버 shared_pixel_arts 캐시) */
   async function enrichCatchItemWithAi(item) {
-    const rarity = item.rarity;
     if (!isLoggedIn || !alpToken || !platformApi) return item;
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${alpToken}`,
     };
     try {
-      if (rarity === 'common' || rarity === 'rare') {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 120000);
-        const res = await fetch(`${platformApi}/api/ai/image`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            name: item.name,
-            type: item.type,
-            rarity: item.rarity,
-          }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.coins != null && Number.isFinite(Number(data.coins))) {
-            totalCoins = Number(data.coins);
-            updateCoinDisplay();
-          }
-          if (data.imageUrl) {
-            const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
-            if (art) item.pixelArt = art;
-          }
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 120000);
+      const res = await fetch(`${platformApi}/api/ai/image`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: item.name,
+          type: item.type,
+          rarity: 'common',
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.coins != null && Number.isFinite(Number(data.coins))) {
+          totalCoins = Number(data.coins);
+          updateCoinDisplay();
         }
-        return item;
-      }
-      if (rarity === 'epic' || rarity === 'legendary') {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 120000);
-        const res = await fetch(`${platformApi}/api/ai/catch`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ rarity }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (!res.ok) return item;
-        const ai = await res.json();
-        if (!ai || typeof ai.name !== 'string' || !String(ai.name).trim()) return item;
-        const size = rollSize(rarity);
-        const typ = typeof ai.type === 'string' && ai.type.length ? ai.type : UNIFIED_TYPE;
-        const coins = computeCoinValue(rarity, size, typ);
-        const next = {
-          name: String(ai.name).trim().slice(0, 50),
-          type: typ,
-          rarity,
-          size,
-          coins,
-          emoji: typeof ai.emoji === 'string' ? ai.emoji.slice(0, 8) : '',
-        };
-        if (ai.imageUrl) {
-          const art = await rasterizeImageUrlToPixelArt(ai.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
-          if (art) next.pixelArt = art;
+        if (data.imageUrl) {
+          const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
+          if (art) item.pixelArt = art;
         }
-        return next;
       }
     } catch {
       /* PixelLab/네트워크 실패 → 절차적 픽셀 폴백 */
@@ -1709,7 +1483,7 @@
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
-      currentItem = { rarity: rollRarity() };
+      currentItem = { rarity: 'common' };
       goMinigame();
     }, wait);
     syncInventoryDockMinigamePosition();
@@ -1745,10 +1519,9 @@
     }
 
     state = 'RESULT';
-    const rarity = currentItem.rarity;
     startScanPanelCountdown(20);
     const scanT0 = performance.now();
-    let item = rollItemFromRarity(rarity);
+    let item = rollProceduralCatchItem();
     try {
       item = await enrichCatchItemWithAi(item);
     } catch {
@@ -1773,11 +1546,7 @@
 
   /* ── 미니게임 ────────────────────────────────────────── */
   function startMinigame(item) {
-    let cfg = MINI_CONFIG[item.rarity] || MINI_CONFIG.common;
-    if (easyEpicTest) {
-      const soft = MINI_EPIC_SOFT[item.rarity];
-      if (soft) cfg = soft;
-    }
+    const cfg = MINI_CONFIG.common;
     mini.cfg = cfg;
     mini.trackH = minigameTrack.clientHeight || 160;
     mini.zoneH  = Math.floor(mini.trackH * cfg.zoneRatio);
@@ -1882,7 +1651,7 @@
     stopScanPanel();
     stopStatusScanning();
     if (statusMsg) statusMsg.classList.add('hidden');
-    resultCard.className = `result-card hidden rarity-${item.rarity}`;
+    resultCard.className = 'result-card hidden rarity-common';
     if (!item.pixelArt) {
       item.pixelArt = await generateCatchPixelArt(item);
     }
@@ -1890,12 +1659,10 @@
     if (resultSpriteHost) {
       mountPixelArt(resultSpriteHost, art, 128, 128);
     }
-    if (resultEpicCongrats) {
-      const epicPlus = item.rarity === 'epic' || item.rarity === 'legendary';
-      resultEpicCongrats.classList.toggle('hidden', !epicPlus);
+    if (resultRarity) {
+      resultRarity.className = 'result-rarity rarity-common';
+      resultRarity.textContent = RARITY_LABEL.common;
     }
-    resultRarity.className  = `result-rarity rarity-${item.rarity}`;
-    resultRarity.textContent = RARITY_LABEL[item.rarity];
     resultName.textContent  = item.name;
     resultSize.textContent  = `${item.size}kg`;
     resultCoins.textContent = `${item.coins} 코인`;
@@ -1919,7 +1686,7 @@
           itemName:  item.name,
           itemEmoji: typeof item.emoji === 'string' ? item.emoji.slice(0, 10) : '',
           itemType:  item.type,
-          rarity:    item.rarity,
+          rarity:    'common',
           size:      item.size,
           coinValue: item.coins,
         };
@@ -1949,7 +1716,7 @@
       name: item.name,
       type: item.type,
       size: item.size,
-      rarity: item.rarity,
+      rarity: 'common',
       coins: item.coins,
       pixelArt: localPixelArt,
     });

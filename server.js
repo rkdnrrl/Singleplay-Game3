@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3005;
 
 const app = express();
 
-// config.js — API 한 줄 + 디스크 config.js 전체 (easy 모드는 config 플래그 AND ?easyEpic=1)
+// config.js — API 한 줄 + 디스크 config.js 전체
 app.get('/config.js', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.type('application/javascript');
