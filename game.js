@@ -1000,6 +1000,7 @@
 
     let stars = [];
     let pixelFloaters = [];
+    let sharedBmps = []; // shared_pixel_arts 에서 로드한 AI 이미지 비트맵
 
     function wrapCoord(v, max) {
       const pad = 80;
@@ -1025,6 +1026,43 @@
         cctx.fillRect(px * scale, py * scale, scale, scale);
       }
       return c;
+    }
+
+    /** base64 이미지 URL → 배경용 캔버스 비트맵 */
+    function imageUrlToFloaterBmp(url, size) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = size;
+          c.height = size;
+          const cctx = c.getContext('2d');
+          cctx.imageSmoothingEnabled = false;
+          cctx.drawImage(img, 0, 0, size, size);
+          resolve(c);
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    /** sharedBmps 에서 꺼낸 AI 이미지로 플로터 생성 */
+    function makeSharedFloater(bmp, mobileLight) {
+      const speedMul = mobileLight ? 0.42 : 1;
+      const speed = reducedMotion ? 0 : (0.04 + Math.random() * 0.3) * speedMul;
+      const ang = Math.random() * Math.PI * 2;
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.5),
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.002 - 0.001) * speedMul,
+        bmp,
+        alpha: mobileLight ? 0.55 + Math.random() * 0.2 : 0.78 + Math.random() * 0.18,
+        halfW: bmp.width / 2,
+        halfH: bmp.height / 2,
+      };
     }
 
     /** index 짝수: 해양, 홀수: 우주·잔해 등 일반 이름 */
@@ -1081,7 +1119,15 @@
       const n = mobileLight
         ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
         : Math.min(34, Math.max(14, Math.floor(area / 26000)));
-      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
+      // AI 이미지가 있으면 최대 60%를 AI 플로터로, 나머지는 절차적
+      const aiCount = Math.min(sharedBmps.length, Math.floor(n * 0.6));
+      const shuffled = sharedBmps.length > 0
+        ? [...sharedBmps].sort(() => Math.random() - 0.5)
+        : [];
+      pixelFloaters = [
+        ...Array.from({ length: aiCount }, (_, i) => makeSharedFloater(shuffled[i % shuffled.length], mobileLight)),
+        ...Array.from({ length: n - aiCount }, (_, i) => makePixelFloater(i, mobileLight)),
+      ];
     }
 
     function drawPixelFloater(f) {
@@ -1115,9 +1161,43 @@
       requestAnimationFrame(draw);
     }
 
+    /** shared_pixel_arts 에서 AI 이미지 로드 후 배경 플로터에 반영 */
+    async function loadSharedFloaters() {
+      if (!platformApi) return;
+      try {
+        const headers = alpToken ? { Authorization: `Bearer ${alpToken}` } : {};
+        const res = await fetch(`${platformApi}/api/ai/floaters?limit=20`, { headers });
+        if (!res.ok) return;
+        const { arts = [] } = await res.json();
+        if (arts.length === 0) return;
+
+        const BMP_SIZE = 56; // 배경 오브젝트 크기(px)
+        const loaded = (await Promise.all(arts.map((a) => imageUrlToFloaterBmp(a.imageData, BMP_SIZE))))
+          .filter(Boolean);
+        if (loaded.length === 0) return;
+
+        sharedBmps = loaded;
+        // 로드 완료 후 바로 플로터 교체 (resize 재호출 없이)
+        const mobileLight =
+          isMobileViewport ||
+          (typeof window.matchMedia === 'function' &&
+            window.matchMedia('(max-width: 520px)').matches);
+        const aiCount = Math.min(sharedBmps.length, Math.floor(pixelFloaters.length * 0.6));
+        const shuffled = [...sharedBmps].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < aiCount; i++) {
+          const bmp = shuffled[i % shuffled.length];
+          pixelFloaters[i] = makeSharedFloater(bmp, mobileLight);
+        }
+      } catch {
+        // 실패 시 절차적 플로터 유지
+      }
+    }
+
     resize();
     window.addEventListener('resize', resize);
     draw();
+    // 약간 지연 후 로드 (alpToken 세팅 시간 확보)
+    setTimeout(loadSharedFloaters, 2000);
   })();
 
   /* ── 아이템 뽑기 ─────────────────────────────────────── */
@@ -1641,7 +1721,7 @@
         showStatus('이미지를 불러오는 중...');
         try {
           const ctrl2 = new AbortController();
-          const tid2 = setTimeout(() => ctrl2.abort(), 25000);
+          const tid2 = setTimeout(() => ctrl2.abort(), 35000);
           const imgRes = await fetch(`${platformApi}/api/ai/image`, {
             method: 'POST',
             headers: {
