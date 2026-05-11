@@ -1246,7 +1246,7 @@
     },
   };
 
-  /** `easyEpic` 테스트 시 에픽·전설 미니게임만 희귀급에 가깝게 완화 */
+  /** easy 모드( config 플래그 AND ?easyEpic=1 )일 때 에픽·전설 미니게임만 희귀급에 가깝게 완화 */
   const MINI_EPIC_SOFT = {
     epic: {
       zoneRatio: 0.30,
@@ -1334,11 +1334,13 @@
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2;
   })();
 
-  /** 에픽·전설 테스트: 일반 출현 비중↓ · 미니게임 판정 완화. `?easyEpic=1` 또는 `window.__ALP_EASY_EPIC_TEST__` */
+  /**
+   * 에픽·전설 테스트: 비중↑ · 미니게임 완화.
+   * **둘 다** 만족할 때만 켜짐 — 배포에서 `__ALP_EASY_EPIC_TEST__` 를 false 두면 `?easyEpic=1` 만으로는 적용 안 됨.
+   */
   const easyEpicTest =
-    urlParams.get('easyEpic') === '1' ||
-    urlParams.get('testEpic') === '1' ||
-    window.__ALP_EASY_EPIC_TEST__ === true;
+    window.__ALP_EASY_EPIC_TEST__ === true &&
+    (urlParams.get('easyEpic') === '1' || urlParams.get('testEpic') === '1');
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
@@ -1566,7 +1568,7 @@
 
   /** 이름 없이 희귀도만 랜덤으로 결정 (미니게임 시작 전에 사용)
    *  기본: common 90% / rare 7% / epic 2.5% / legendary 0.5%
-   *  easyEpic: common 22% / rare 28% / epic 38% / legendary 12%
+   *  easy 모드: common 22% / rare 28% / epic 38% / legendary 12%
    */
   function rollRarity() {
     let wC; let wR; let wE; let wL;
