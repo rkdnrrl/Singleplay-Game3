@@ -134,11 +134,6 @@ const NAME_CATCH_PREFIX = `철 나무 은 동 구리 알루미늄 가죽 유리 
   .split(/\s+/)
   .filter(Boolean);
 
-const NAME_CATCH_ROOM = `거실 안방 주방 욕실 베란다 현관 창고 세탁실 드레스룸 서재 아이방 팬트리 옥상 다락`
-  .trim()
-  .split(/\s+/)
-  .filter(Boolean);
-
 const NAME_CATCH_TREES = `
 참나무 굴참나무 상수리나무 떡갈나무 신갈나무 졸참나무 느티나무 은행나무 벚나무 왕벚나무 단풍나무 소나무 해송 흑송 잣나무 리기다소나무 가문비나무 편백 향나무 유칼립투스 자작나무 물푸레나무 버드나무 때죽나무 가죽나무 무화과나무 감나무 밤나무 배나무 사과나무 복숭아나무 자두나무 매실나무 살구나무 앵두나무 체리나무 포도나무 키위나무 감귤나무 레몬나무 오렌지나무 귤나무 대추야자 야자수 잎갈나무 전나무 삼나무 육송 목련나무 왕버들 은버들 팽나무 느릅나무 회화나무 당나무 오동나무 배롱나무 주목 편백나무 노송나무 향나무숲 잣나무숲
 `.trim()
@@ -160,7 +155,7 @@ const NAME_CATCH_GRASS = `
 function buildInjectionBlock() {
   const lines = [];
   lines.push('  /**');
-  lines.push('   * 줍는 이름 — 손수 고른 시드 + (재질·공간)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).');
+  lines.push('   * 줍는 이름 — 손수 고른 시드 + (재질·용도 등 접두)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).');
   lines.push('   * `catchNameToFormula`는 이름 안의 금속·합금 토큰만 골라냄.');
   lines.push('   */');
   lines.push('  const NAME_CATCH_SEED = `');
@@ -176,11 +171,6 @@ function buildInjectionBlock() {
   lines.push(
     '  const NAME_CATCH_PREFIX = `' +
       NAME_CATCH_PREFIX.join(' ') +
-      '`.trim().split(/\\s+/).filter(Boolean);',
-  );
-  lines.push(
-    '  const NAME_CATCH_ROOM = `' +
-      NAME_CATCH_ROOM.join(' ') +
       '`.trim().split(/\\s+/).filter(Boolean);',
   );
   lines.push('  const NAME_CATCH_CORE_OBJ = Object.values(NAME_CATCH_OBJ_GROUPS).flat();');
@@ -208,14 +198,6 @@ function buildInjectionBlock() {
   lines.push('      for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {');
   lines.push('        const o = NAME_CATCH_CORE_OBJ[j];');
   lines.push('        const n = `${p}${o}`;');
-  lines.push('        if (n.length <= 26) set.add(n);');
-  lines.push('      }');
-  lines.push('    }');
-  lines.push('    for (let i = 0; i < NAME_CATCH_ROOM.length; i += 1) {');
-  lines.push('      const r = NAME_CATCH_ROOM[i];');
-  lines.push('      for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {');
-  lines.push('        const o = NAME_CATCH_CORE_OBJ[j];');
-  lines.push('        const n = `${r}${o}`;');
   lines.push('        if (n.length <= 26) set.add(n);');
   lines.push('      }');
   lines.push('    }');

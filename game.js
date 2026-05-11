@@ -186,7 +186,7 @@
   }
 
   /**
-   * 줍는 이름 — 손수 고른 시드 + (재질·공간)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).
+   * 줍는 이름 — 손수 고른 시드 + (재질·용도 등 접두)×용품명 + 나무·꽃·풀 명칭 합집합(랜덤 토큰 난조합 없음).
    * `catchNameToFormula`는 이름 안의 금속·합금 토큰만 골라냄.
    */
   const NAME_CATCH_SEED = `
@@ -313,7 +313,6 @@ USB허브
   };
 
   const NAME_CATCH_PREFIX = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 전기 무선 접이식 휴대용 대형 소형 미니 업소용 가정용 야외 방수 캠핑 게이밍 사무용 운동용 주방용 욕실용 정원용 차량용 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`.trim().split(/\s+/).filter(Boolean);
-  const NAME_CATCH_ROOM = `거실 안방 주방 욕실 베란다 현관 창고 세탁실 드레스룸 서재 아이방 팬트리 옥상 다락`.trim().split(/\s+/).filter(Boolean);
   const NAME_CATCH_CORE_OBJ = Object.values(NAME_CATCH_OBJ_GROUPS).flat();
 
   const NAME_CATCH_TREES = `
@@ -339,14 +338,6 @@ USB허브
       for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {
         const o = NAME_CATCH_CORE_OBJ[j];
         const n = `${p}${o}`;
-        if (n.length <= 26) set.add(n);
-      }
-    }
-    for (let i = 0; i < NAME_CATCH_ROOM.length; i += 1) {
-      const r = NAME_CATCH_ROOM[i];
-      for (let j = 0; j < NAME_CATCH_CORE_OBJ.length; j += 1) {
-        const o = NAME_CATCH_CORE_OBJ[j];
-        const n = `${r}${o}`;
         if (n.length <= 26) set.add(n);
       }
     }
