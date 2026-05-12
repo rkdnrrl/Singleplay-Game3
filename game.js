@@ -1336,7 +1336,7 @@ USB허브
       .catch(() => {});
   }
 
-  /* ── 별 + 이름 기반 픽셀 오브젝트(배경, 선명하게) ──────── */
+  /* ── 별 + DB(도감·공유 플로터 API) 픽셀 오브젝트(배경) ──────── */
   (function initStarsAndPixelFloaters() {
     const canvas = document.getElementById('stars');
     if (!canvas) return;
@@ -1354,9 +1354,9 @@ USB허브
 
     let stars = [];
     let pixelFloaters = [];
-    /** 플랫폼 도감 API(`__ALP_CODEX_API_PATH__` 등)로 받은 항목 — 배경에 추가 플로터로 표시 */
+    /** 플랫폼 도감 API로 받은 항목 — pixelArt 있는 것만 배경 플로터로 표시 */
     let codexCache = null;
-    /** `shared_pixel_arts`(/api/ai/floaters)에서 받아 픽셀화한 항목 — 배경 플로터 */
+    /** `/api/ai/floaters`에서 받아 픽셀화한 항목 — 배경 플로터 */
     let sharedFloatersCache = null;
 
     function wrapCoord(v, max) {
@@ -1383,38 +1383,6 @@ USB허브
         cctx.fillRect(px * scale, py * scale, scale, scale);
       }
       return c;
-    }
-
-    /** index 짝수: 짧은 명칭 + 녹/구리 톤, 홀수: 풀 이름 + 냉철 톤 */
-    function makePixelFloater(index, mobileLight) {
-      const rustAlt = (index & 1) === 0;
-      const name = rustAlt ? generateBackgroundScrapName() : generateCatchName();
-      const size = rollSize();
-      const item = { name, type: UNIFIED_TYPE, rarity: 'common', size };
-      const base = hashPixelArtSeed(item);
-      const pickSeed = rustAlt ? base ^ 0x9e3779b9 : base;
-      const art0 = generateProceduralPixelArtFromItem(item, pickSeed, rustAlt);
-      const scale = mobileLight
-        ? 2
-        : 2 + (Math.random() < 0.28 ? 1 : 0);
-      const bmp = rasterizePixelArtForBg(art0, scale);
-      const speedMul = mobileLight ? 0.42 : 1;
-      const speed = reducedMotion ? 0 : (0.05 + Math.random() * 0.38) * speedMul;
-      const ang = Math.random() * Math.PI * 2;
-      const floater = {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed * (0.5 + Math.random() * 0.55),
-        rot: Math.random() * Math.PI * 2,
-        rotSpeed: reducedMotion ? 0 : (Math.random() * 0.003 - 0.0015) * speedMul,
-        bmp,
-        alpha: mobileLight ? 0.52 + Math.random() * 0.14 : 0.72 + Math.random() * 0.2,
-        halfW: bmp.width / 2,
-        halfH: bmp.height / 2,
-        _bgScale: scale,
-      };
-      return floater;
     }
 
     function normalizeCodexResponse(data) {
@@ -1476,32 +1444,9 @@ USB허브
       return null;
     }
 
-    function makeFloaterFromCodexEntry(entry, mobileLight, index) {
-      const name =
-        (entry &&
-          (entry.name ||
-            entry.itemName ||
-            entry.title ||
-            entry.label ||
-            (entry.item != null ? String(entry.item) : ''))) ||
-        '폐품';
-      const size =
-        entry && entry.size != null && Number.isFinite(Number(entry.size))
-          ? Number(entry.size)
-          : rollSize();
-      const item = {
-        name,
-        type: (entry && (entry.itemType || entry.type)) || UNIFIED_TYPE,
-        rarity: 'common',
-        size,
-      };
-      let art0 = entry && entry.pixelArt ? sanitizedCodexPixelArt(entry.pixelArt) : null;
-      if (!art0) {
-        const rustAlt = (index & 1) === 0;
-        const base = hashPixelArtSeed(item);
-        const pickSeed = rustAlt ? base ^ 0x5f356496 : base ^ 0x2b7e1516;
-        art0 = generateProceduralPixelArtFromItem(item, pickSeed, rustAlt);
-      }
+    function makeFloaterFromCodexEntry(entry, mobileLight) {
+      const art0 = entry && entry.pixelArt ? sanitizedCodexPixelArt(entry.pixelArt) : null;
+      if (!art0) return null;
       const scale = mobileLight ? 2 : 2 + (Math.random() < 0.32 ? 1 : 0);
       const bmp = rasterizePixelArtForBg(art0, scale);
       const speedMul = mobileLight ? 0.42 : 1;
@@ -1524,19 +1469,15 @@ USB허브
 
     function rebuildPixelFloaters(mobileLight) {
       const area = canvas.width * canvas.height;
-      const n = mobileLight
-        ? Math.min(8, Math.max(4, Math.floor(area / 72000)))
-        : Math.min(34, Math.max(14, Math.floor(area / 26000)));
-      pixelFloaters = Array.from({ length: n }, (_, i) => makePixelFloater(i, mobileLight));
+      pixelFloaters = [];
       if (codexCache && codexCache.length) {
         const extra = Math.min(
           codexCache.length,
           Math.min(28, Math.max(5, Math.floor(area / 48000))),
         );
         for (let i = 0; i < extra; i += 1) {
-          pixelFloaters.push(
-            makeFloaterFromCodexEntry(codexCache[i % codexCache.length], mobileLight, i + 4096),
-          );
+          const f = makeFloaterFromCodexEntry(codexCache[i % codexCache.length], mobileLight);
+          if (f) pixelFloaters.push(f);
         }
       }
       if (sharedFloatersCache && sharedFloatersCache.length) {
@@ -1545,13 +1486,11 @@ USB허브
           Math.min(24, Math.max(4, Math.floor(area / 52000))),
         );
         for (let i = 0; i < extra; i += 1) {
-          pixelFloaters.push(
-            makeFloaterFromCodexEntry(
-              sharedFloatersCache[i % sharedFloatersCache.length],
-              mobileLight,
-              i + 12288,
-            ),
+          const f = makeFloaterFromCodexEntry(
+            sharedFloatersCache[i % sharedFloatersCache.length],
+            mobileLight,
           );
+          if (f) pixelFloaters.push(f);
         }
       }
     }
