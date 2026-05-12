@@ -1296,7 +1296,7 @@ USB허브
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
-          totalCatches = data.total ?? 0;
+          totalCatches = Math.max(totalCatches, data.total ?? 0);
           updateCatchesDisplay();
         }
       })
@@ -2406,14 +2406,12 @@ USB허브
     resultSize.textContent  = `${item.size}kg`;
     resultCoins.textContent = `${item.coins} 코인`;
     resultCard.classList.remove('hidden');
-
-    totalCatches += 1;
-    updateCatchesDisplay();
   }
 
   /* ── 서버 저장 + 적재함 추가 ─────────────────────────── */
   async function saveCatch(item) {
     let catchId = null;
+    let serverLifetimeTotal = null;
     // 픽셀 패턴이 있으면 정제해서 전송, 없으면 서버가 자체 생성
     const pixelArtForServer = item.pixelArt
       ? serializePixelArt(item.pixelArt)
@@ -2441,6 +2439,10 @@ USB허브
         });
         const data = res.ok ? await res.json() : null;
         catchId = data?.catch?.id ?? null;
+        const lt = data?.lifetimeCatchTotal;
+        if (lt != null && Number.isFinite(Number(lt))) {
+          serverLifetimeTotal = Number(lt);
+        }
       } catch {}
     }
 
@@ -2460,6 +2462,13 @@ USB허브
       pixelArt: localPixelArt,
     });
     renderInventory();
+
+    if (serverLifetimeTotal != null) {
+      totalCatches = Math.max(totalCatches, serverLifetimeTotal);
+    } else {
+      totalCatches += 1;
+    }
+    updateCatchesDisplay();
   }
 
   /* ── 유틸 ────────────────────────────────────────────── */
