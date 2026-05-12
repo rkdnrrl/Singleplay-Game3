@@ -22,7 +22,7 @@ BGM (sounds/bgm/) — 권장 파일명
 효과음 (sounds/sfx/) — 권장 파일명 (코드에서 맞추기 쉬운 영문+스네이크 케이스)
 -----------------------------------------------------------------------------
   ui_click.mp3           … 버튼/UI 탭
-  cast_start.mp3         … "고철 줍기 시작" / 캐스트
+  cast_start.mp3         … "아이템 회수 시작" / 캐스트
   minigame_tick.mp3      … 미니게임 바 움직임(선택, 잦으면 생략 가능)
   minigame_success.mp3  … 미니게임 성공
   minigame_fail.mp3     … 미니게임 실패

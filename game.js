@@ -87,14 +87,14 @@
   /* ── 절차적 아이템 (희귀도 없음 — 표시·저장은 모두 일반) ─── */
   const RARITY_LABEL = { common: '일반' };
 
-  /** API·저장용 타입 — 고철 스크랩 */
+  /** API·저장용 타입 코드 (표시명은 폐품·아이템 톤) */
   const UNIFIED_TYPE = 'scrap';
   const SILHOUETTE_TYPES = ['ingot', 'wire', 'plate', 'machine', 'shard'];
 
   /** 실루엣·배경 플로터용 — 금속·합금 톤 (이름 생성 풀과 겹치게 유지) */
   const NAME_PARTS = {
     ingot: {
-      pre: ['고철', '강철', '산화철', '산소', '물', '질소'],
+      pre: ['고철', '폐품', '강철', '산화철', '산소', '물', '질소'],
       core: ['주괴', '덩어리', '리바', '슬래그'],
       post: [''],
     },
@@ -155,6 +155,7 @@
     ['백동', 'CuNi'],
     ['강철', 'FeC'],
     ['고철', 'Fe'],
+    ['폐품', 'Fe'],
     ['비철', ''],
     ['니켈', 'Ni'],
     ['크롬', 'Cr'],
@@ -278,8 +279,8 @@ PC모니터
 책상램프
 스탠드조명
 무선마우스
-유선키보드
-기계식키보드
+블루투스이어폰
+보조배터리
 USB허브
 멀티탭
 연장코드
@@ -325,11 +326,12 @@ USB허브
     가구: `의자 책상 식탁 침대 소파 쿠션 방석 안락의자 리클라이너 접이식의자 높이조절의자 사무의자 게이밍의자 스툴 벤치 파티션 칸막이 책꽂이 책받침 책장 장롱 서랍장 신발장 옷장 드레스룸장 행거 행거도어 거울 탁자 사이드테이블 티테이블 콘솔 벽선반 코너선반 TV다이 TV벽걸이 스피커스탠드 거치대 CD랙 DVD랙 LP판 보관함 보석함 액자 벽시계 탁상시계 알람시계 모션센서등 무드등 스탠드 조명 벽등`.trim().split(/\s+/).filter(Boolean),
     주방: `냄비 후라이팬 찜기 압력솥 밥솥 전기밥솥 전자레인지 오븐 토스터 그릴 에어프라이 인덕션 믹서기 블렌더 커피포트 텀블러 보온병 물병 와인잔 맥주잔 샷글라스 도마 식칼 과도 가위 칼갈이 양념통 양념병 병따개 오프너 밀폐용기 도시락 보온도시락 젓가락 숟가락 국그릇 밥그릇 접시 대접 냄비받침 식탁보 테이블보 키친타올 행주 설거지통 식기건조대 식기세척기 식세기 냉장고 냉동고 와인셀러 김치냉장고 정수기 정수필터 커피머신 원두통 티포트 전기포트 전기주전자`.trim().split(/\s+/).filter(Boolean),
     욕실: `세면대 거울 샤워기 샤워줄 샤워커튼 욕조 발판 변기 변기커버 비데 휴지걸이 휴지통 수건걸이 수건 비누 디스펜서 칫솔통 칫솔컵 샴푸 린스 바디워시 스펀지 샤워볼 욕실매트 발매트 욕실화 슬리퍼 배수구망 배수구커버 욕실선반 코너선반 욕실장 욕실수납함 세탁바구니 세탁망 건조대 빨랫줄 다리미 다림판 스팀다리미`.trim().split(/\s+/).filter(Boolean),
-    전자: `모니터 TV 프로젝터 스피커 사운드바 헤드폰 이어폰 이어버드 마이크 웹캠 키보드 마우스 패드 게이밍마우스 무선마우스 유선키보드 기계식키보드 노트북 태블릿 스마트폰 충전기 어댑터 보조배터리 파워뱅크 멀티탭 연장코드 콘센트 USB허브 랜허브 공유기 외장하드 SSD 메모리카드 프린터 스캐너 복합기 팩스 리모컨 셋톱박스 블루레이플레이어 DVD플레이어 CD플레이어 라디오 시계 라디오시계`.trim().split(/\s+/).filter(Boolean),
+    전자: `모니터 TV 프로젝터 스피커 사운드바 헤드폰 이어폰 이어버드 마이크 웹캠 마우스 패드 게이밍마우스 무선마우스 키보드 노트북 태블릿 스마트폰 스마트워치 충전기 어댑터 보조배터리 파워뱅크 멀티탭 연장코드 콘센트 USB허브 랜허브 공유기 외장하드 SSD 메모리카드 USB메모리 카드리더기 프린터 스캐너 복합기 팩스 리모컨 셋톱박스 블루레이플레이어 DVD플레이어 CD플레이어 라디오 시계 라디오시계 액션캠 블루투스스피커`.trim().split(/\s+/).filter(Boolean),
     공구: `망치 톱 손톱 못 드릴 전동드릴 임팩드릴 드라이버 렌치 스패너 플라이어 집게 펜치 철사 줄자 수평기 레이저레벨 공구함 공구세트 연장선 작업등 안전모 보안경 귀마개 방진마스크 용접면 용접기 압착기 펜치세트 소켓세트 비트세트 체인톱 예초기 잔디깍기 물뿌리개 호스 스프링클러 삽 갈퀨 호미 낫 가위 전지가위 전기톱`.trim().split(/\s+/).filter(Boolean),
     스포츠: `덤벨 케틀벨 아령 바벨 원판 풀업바 스쿼트랙 벤치프레스 런닝머신 실내자전거 스핀바이크 일립티컬 로잉머신 요가매트 폼롤러 요가블록 저항밴드 점핑로프 줄넘기 헬스장갑 헬스벨트 무릎보호대 손목보호대 팔꿈치보호 발목보호 허리보호 어깨보호 헬멧 스키헬멧 자전거헬멧 인라인헬멧 스케이트보드 롤러스케이트 킥보드 축구공 농구공 배구공 배드민턴라켓 테니스라켓 탁구채 야구배트 글러브 야구공 골프채 골프공 스노클 오리발 수경 수모 튜브 구명조끼`.trim().split(/\s+/).filter(Boolean),
     사무: `연필 샤프 볼펜 만년필 형광펜 사인펜 마커 지우개 자 계산기 스테이플러 스테이플 심 클립 파일철 바인더 클립보드 메모지 스티커 테이프 디스펜서 명함철 명함지갑 서류가방 브리프케이스 노트 다이어리 캘린더 스케줄러 화이트보드 칠판 자석칠판 칠판지우개 프린터용지 라벨기 라벨지 펀치 홀펀치 제본기 과철기 문서고 서류꽂이 책꽂이 책받침 독서대`.trim().split(/\s+/).filter(Boolean),
     정원: `화분 화분받침 화분받침대 받침대 모종삽 모종이 호미 갈퀨 삽 낫 예초기 잔디깍기 물뿌리개 스프링클러 호스 릴호스 비닐하우스 온실프레임 파라솔 해변의자 캠핑의자 캠핑테이블 쿨러 아이스박스 그릴 숯 가스버너 토치 바비큐집게 집게 불판 그릴망 훈연통 정원등 태양등 센서등 잔디씨 꽃씨 비료 거름 퇴비 흙 상토 배양토 화분흙 분무기 살충제 제초제 잡초제거기`.trim().split(/\s+/).filter(Boolean),
+    고철: `와이어코일 케이블릴 베어링 롤러베어링 볼베어링 톱니바퀴 기어 스프로킷 체인 체인링크 I빔 H빔 앵글 철근 형강 압연재 압연권 슬래그덩이 플랜지 플랜지판 게이트밸브 볼밸브 밸브캡 압력게이지 샤프트 키웨이 커플링 브라켓 L브라켓 용접봉 전극 퓨즈박스 단자대 녹철판 철판절단편 알루미늄각재 동파이프 강관 와이어로프 스프링와셔 볼트너트세트 리벳 드릴비트 소켓 렌치헤드 톱날 체인톱날`.trim().split(/\s+/).filter(Boolean),
   };
 
   const NAME_CATCH_PREFIX_GENERAL = `철 나무 은 동 구리 알루미늄 가죽 유리 고무 플라스틱 스테인 청동 황동 백동 강철 산화철 접이식 휴대용 대형 소형 미니 야외 방수 캠핑 얇은 두꺼운 긴 짧은 둥근 네모난 새것같은`.trim().split(/\s+/).filter(Boolean);
@@ -513,9 +515,40 @@ USB허브
     return null;
   }
 
-  /** 줍는 고철 이름 — 미리 적어 둔 실물형 목록에서만 선택 */
+  const NAME_CATCH_WEIGHTED_CATS = ['가구', '주방', '욕실', '정원', '스포츠', '사무', '공구', '전자', '고철'];
+  const NAME_CATCH_CAT_W = [4, 4, 3, 4, 4, 3, 3, 2, 4];
+
+  function pickWeightedCatchCategory() {
+    const sum = NAME_CATCH_CAT_W.reduce((a, b) => a + b, 0);
+    let r = Math.random() * sum;
+    for (let i = 0; i < NAME_CATCH_WEIGHTED_CATS.length; i += 1) {
+      r -= NAME_CATCH_CAT_W[i];
+      if (r <= 0) return NAME_CATCH_WEIGHTED_CATS[i];
+    }
+    return NAME_CATCH_WEIGHTED_CATS[NAME_CATCH_WEIGHTED_CATS.length - 1];
+  }
+
+  function generateCatchNameFromWeightedCategory() {
+    const cat = pickWeightedCatchCategory();
+    const arr = NAME_CATCH_OBJ_GROUPS[cat];
+    if (!arr || arr.length === 0) return pick(NAME_CATCH_CURATED);
+    const core = pick(arr);
+    const r = Math.random();
+    if (cat === '전자' && r < 0.36) {
+      const p = pick(NAME_CATCH_PREFIX_TECH);
+      if (core && !String(core).startsWith(p)) return `${p}${core}`.slice(0, 26);
+    }
+    if (r < 0.44) {
+      const p = pick(NAME_CATCH_PREFIX_GENERAL);
+      return `${p}${core}`.slice(0, 26);
+    }
+    return String(core).slice(0, 26);
+  }
+
+  /** 줍는 이름 — 큐레이션 풀 + 범주 가중 조합을 섞어 한쪽으로 쏠리지 않게 */
   function generateCatchName() {
-    return pick(NAME_CATCH_CURATED);
+    if (Math.random() < 0.34) return pick(NAME_CATCH_CURATED);
+    return generateCatchNameFromWeightedCategory();
   }
 
   /** 배경용: 짧은 항목만 */
@@ -940,7 +973,7 @@ USB허브
     }
   }
 
-  /** 야적장 플레이어 스프라이트 — 논리 해상도 32×32 (줍는 고철과 동일 그리드). */
+  /** 야적장 플레이어 스프라이트 — 논리 해상도 32×32 (회수 아이템과 동일 그리드). */
   function createDefaultPlayerPixelArt() {
     const w = PIXEL_GRID_W;
     const h = PIXEL_GRID_H;
@@ -1256,7 +1289,7 @@ USB허브
       })
       .catch(() => {});
 
-    // 총 줍은 개수
+    // 총 획득 개수
     fetch(`${platformApi}/api/catches/stats`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
@@ -1451,7 +1484,7 @@ USB허브
             entry.title ||
             entry.label ||
             (entry.item != null ? String(entry.item) : ''))) ||
-        '고철';
+        '폐품';
       const size =
         entry && entry.size != null && Number.isFinite(Number(entry.size))
           ? Number(entry.size)
@@ -1800,7 +1833,7 @@ USB허브
     const totalValue = inventory.reduce((s, i) => s + i.coins, 0);
     if (sellAllBtn) {
       sellAllBtn.classList.remove('hidden');
-      sellAllBtn.textContent = `고철 전부 팔기 · ${totalValue.toLocaleString()} 코인`;
+      sellAllBtn.textContent = `아이템 전부 팔기 · ${totalValue.toLocaleString()} 코인`;
     }
 
     inventoryList.innerHTML = '';
@@ -1854,7 +1887,7 @@ USB허브
       const total = withId.reduce((s, i) => s + (i.coins || 0), 0);
       sellConfirmMsg.textContent =
         n > 0
-          ? `적재함의 고철 ${n}덩이를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()} 코인`
+          ? `적재함의 아이템 ${n}개를 전부 파시겠습니까?\n합계 약 ${total.toLocaleString()} 코인`
           : '팔 수 있는 아이템이 없습니다.';
     }
     sellConfirmOverlay.classList.remove('hidden');
@@ -2129,7 +2162,7 @@ USB허브
     castBtn.classList.add('hidden');
     resultCard.classList.add('hidden');
     stopScanPanel();
-    showStatus('우주 심연으로 수확 빔을 내리는 중...');
+    showStatus('우주 궤도에서 수거 빔을 내리는 중...');
     beamLine.classList.add('extended');
 
     setTimeout(() => {
@@ -2142,7 +2175,7 @@ USB허브
 
   function goWaiting() {
     state = 'WAITING';
-    showStatus('심연 속 잔해 더미에서 고철 신호를 찾는 중...');
+    showStatus('잔해 더미에서 미확인 아이템 신호를 찾는 중...');
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
@@ -2156,7 +2189,7 @@ USB허브
   function goMinigame() {
     state = 'MINIGAME';
     lureEl.classList.add('biting');
-    showStatus('심연 가장자리에서 고철 반응!');
+    showStatus('가장자리에서 물건 반응!');
     minigame.classList.remove('hidden');
     startMinigame(currentItem);
     syncInventoryDockMinigamePosition();

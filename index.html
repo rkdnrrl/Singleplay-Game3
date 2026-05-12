@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>고철 줍기</title>
+  <title>우주 폐품 · 아이템 회수</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet" />
@@ -19,7 +19,7 @@
         <span id="coinCount" class="hud-value coin-value">-</span>
       </div>
       <div class="hud-block">
-        <span class="hud-label">총 줍은 수</span>
+        <span class="hud-label">총 획득</span>
         <span id="totalCatches" class="hud-value">0</span>
       </div>
     </header>
@@ -36,7 +36,7 @@
       </div>
 
       <!-- 상태별 UI -->
-      <button class="cast-btn" id="castBtn" type="button">고철 줍기 시작</button>
+      <button class="cast-btn" id="castBtn" type="button">아이템 회수 시작</button>
 
       <div class="status-msg hidden" id="statusMsg"></div>
 
@@ -52,7 +52,7 @@
             <div class="catch-progress-bg">
               <div class="catch-progress-fill" id="catchProgressFill"></div>
             </div>
-            <span class="catch-progress-label">인양</span>
+            <span class="catch-progress-label">끌어올림</span>
           </div>
         </div>
       </div>
@@ -60,7 +60,7 @@
   </div>
 
   <!-- 적재함: 뷰포트 고정, 메인 게임 플로우·레이아웃과 분리 -->
-  <section class="log-panel inventory-dock" id="inventoryDock" aria-label="적재함">
+  <section class="log-panel inventory-dock" id="inventoryDock" aria-label="적재함 · 회수한 아이템">
     <div class="inv-header">
       <h2 class="log-title">적재함</h2>
       <button class="sell-all-btn hidden" id="sellAllBtn" type="button"></button>
@@ -96,7 +96,7 @@
 
   <!-- 심연 스캔 대기: 팁 + 카운터 + 트랙 -->
   <div id="scanPanel" class="scan-panel hidden" role="status" aria-live="polite">
-    <p class="scan-tip">도감에 등록된 적이 없는 고철일수록 알려진 패턴을 못 쓰니 심연 신호를 처음부터 맞춰야 해서 해석이 더 오래 걸릴 수 있어요.</p>
+    <p class="scan-tip">도감에 없는 물건일수록 알려진 패턴을 못 쓰니, 심연 신호를 처음부터 맞춰야 해서 해석이 더 오래 걸릴 수 있어요.</p>
     <p id="scanCountdownLine" class="scan-countdown-line">
       <span id="scanCountNum">20</span>초 · 예상 대기
     </p>
