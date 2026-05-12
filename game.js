@@ -1228,8 +1228,7 @@ USB허브
 
   let isLoggedIn   = false;
   let totalCoins   = 0;
-  /** 로그인 상태에서 AI 이미지 합성까지 끝나면 스캔 패널에 표시 후 적립 */
-  const SCAN_AI_BONUS_COINS = 100;
+  /** 로그인 시 심연 스캔 종료 후 POST /api/ai/fishing-scan-bonus — 경과 ms당 20초≈100원 비례 지급 */
   let totalCatches = 0;
   let inventory    = []; // { id, name, type, size, rarity, coins, pixelArt? }
   let isSelling    = false;
@@ -1684,12 +1683,6 @@ USB허브
       clearTimeout(tidGem);
       if (resGem.ok) {
         const data = await resGem.json();
-        let bonusGranted = false;
-        if (data.coins != null && Number.isFinite(Number(data.coins))) {
-          totalCoins = Number(data.coins);
-          updateCoinDisplay();
-          bonusGranted = data.bonusCoins > 0;
-        }
         if (data.name && typeof data.name === 'string') {
           const nm = String(data.name).trim();
           if (nm) item.name = nm;
@@ -1705,7 +1698,7 @@ USB허브
             aiArtReady = true;
           }
         }
-        return { item, aiArtReady, bonusGranted };
+        return { item, aiArtReady };
       }
     } catch {
       /* Gemini/통합 API 실패 → 아래 /api/ai/image 폴백 */
@@ -1727,12 +1720,6 @@ USB허브
       clearTimeout(tid);
       if (res.ok) {
         const data = await res.json();
-        let bonusGranted = false;
-        if (data.coins != null && Number.isFinite(Number(data.coins))) {
-          totalCoins = Number(data.coins); // 서버 확정값으로 동기화
-          updateCoinDisplay();
-          bonusGranted = data.bonusCoins > 0;
-        }
         let aiArtReady = false;
         if (data.imageUrl) {
           const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
@@ -1741,7 +1728,7 @@ USB허브
             aiArtReady = true;
           }
         }
-        return { item, aiArtReady, bonusGranted };
+        return { item, aiArtReady };
       }
     } catch {
       /* PixelLab/네트워크 실패 → 절차적 픽셀 폴백 */
@@ -2199,12 +2186,10 @@ USB허브
     const scanT0 = performance.now();
     let item = rollProceduralCatchItem();
     let aiArtReady = false;
-    let bonusGranted = false;
     try {
       const enriched = await enrichCatchItemWithAi(item);
       item = enriched.item;
       aiArtReady = enriched.aiArtReady;
-      bonusGranted = enriched.bonusGranted ?? false;
     } catch {
       /* enrich 내부에서 이미 폴백 */
     }
@@ -2213,14 +2198,40 @@ USB허브
     if (scanElapsed < scanMinMs) {
       await new Promise((r) => setTimeout(r, scanMinMs - scanElapsed));
     }
-    // totalCoins 는 enrichCatchItemWithAi 에서 서버값으로 이미 동기화됨 — 중복 가산 금지
+    const scanTotalMs = Math.round(performance.now() - scanT0);
+
+    let bonusGranted = false;
+    let scanBonusCoins = 0;
+    if (isLoggedIn && alpToken && platformApi) {
+      try {
+        const resB = await fetch(`${platformApi}/api/ai/fishing-scan-bonus`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${alpToken}`,
+          },
+          body: JSON.stringify({ scanElapsedMs: scanTotalMs }),
+        });
+        if (resB.ok) {
+          const bd = await resB.json();
+          if (bd.coins != null && Number.isFinite(Number(bd.coins))) {
+            totalCoins = Number(bd.coins);
+            updateCoinDisplay();
+          }
+          scanBonusCoins = Math.max(0, Math.floor(Number(bd.bonusCoins) || 0));
+          bonusGranted = scanBonusCoins > 0;
+        }
+      } catch {
+        /* 보너스 실패는 비치명 */
+      }
+    }
+
     if (bonusGranted && isLoggedIn) {
-      updateCoinDisplay();
       if (scanCountdownLine) scanCountdownLine.classList.add('hidden');
       if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
       if (scanBonusLine) {
         const amt = scanBonusLine.querySelector('.scan-bonus-amount');
-        if (amt) amt.textContent = `+${SCAN_AI_BONUS_COINS.toLocaleString()}원`;
+        if (amt) amt.textContent = `+${scanBonusCoins.toLocaleString()}원`;
         scanBonusLine.classList.remove('hidden');
       }
       await new Promise((r) => setTimeout(r, 2400));
