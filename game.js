@@ -1707,6 +1707,12 @@ USB허브
         if (data.emoji && typeof data.emoji === 'string') {
           item.emoji = String(data.emoji).trim().slice(0, 10);
         }
+        // 명사 tier·형용사 등급 저장 (보관함·제련 시 활용)
+        if (data.nounTier) item.nounTier = data.nounTier;
+        if (data.adjRarity) item.adjRarity = data.adjRarity;
+        if (data.smeltProducts) item.smeltProducts = data.smeltProducts;
+        // 최종 난이도 등급으로 rarity 갱신
+        if (data.rarity) item.rarity = data.rarity;
         let aiArtReady = false;
         if (data.imageUrl) {
           const art = await rasterizeImageUrlToPixelArt(data.imageUrl, PIXEL_GRID_W, PIXEL_GRID_H);
