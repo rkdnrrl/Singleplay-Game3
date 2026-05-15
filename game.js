@@ -1172,7 +1172,7 @@ USB허브
     mountPixelArt(host, art, 80, 80);
   }
 
-  /** 미니게임 난이도 (등급 구분 없음) */
+  /** 미니게임 난이도 (등급별) */
   const MINI_CONFIG = {
     common: {
       zoneRatio: 0.33,
@@ -1186,7 +1186,52 @@ USB허브
       gravityDown: 315,
       gravityUp: -292,
     },
+    rare: {
+      zoneRatio: 0.26,
+      speed: 80,
+      erratic: true,
+      erraticChance: 0.022,
+      barRatio: 0.18,
+      gainMul: 0.80,
+      lossMul: 1.25,
+      overlapNeed: 0.45,
+      gravityDown: 340,
+      gravityUp: -318,
+    },
+    epic: {
+      zoneRatio: 0.20,
+      speed: 105,
+      erratic: true,
+      erraticChance: 0.035,
+      barRatio: 0.15,
+      gainMul: 0.68,
+      lossMul: 1.40,
+      overlapNeed: 0.50,
+      gravityDown: 370,
+      gravityUp: -348,
+    },
+    legendary: {
+      zoneRatio: 0.14,
+      speed: 130,
+      erratic: true,
+      erraticChance: 0.050,
+      barRatio: 0.12,
+      gainMul: 0.55,
+      lossMul: 1.60,
+      overlapNeed: 0.55,
+      gravityDown: 400,
+      gravityUp: -380,
+    },
   };
+
+  /** 등급별 출현 확률 (합계 1.0) */
+  function rollFishingRarity() {
+    const r = Math.random();
+    if (r < 0.03) return 'legendary';
+    if (r < 0.12) return 'epic';
+    if (r < 0.35) return 'rare';
+    return 'common';
+  }
 
   /* ── DOM ────────────────────────────────────────────── */
   const coinCountEl       = document.getElementById('coinCount');
@@ -1649,7 +1694,7 @@ USB허브
       const resGem = await fetch(`${platformApi}/api/ai/fishing-common`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({}),
+        body: JSON.stringify({ rarity: item.rarity || 'common' }),
         signal: ctrlGem.signal,
       });
       clearTimeout(tidGem);
@@ -2118,7 +2163,7 @@ USB허브
     const wait = 2000 + Math.random() * 4000;
     setTimeout(() => {
       if (state !== 'WAITING') return;
-      currentItem = { rarity: 'common' };
+      currentItem = { rarity: rollFishingRarity() };
       goMinigame();
     }, wait);
     syncInventoryDockMinigamePosition();
@@ -2222,7 +2267,7 @@ USB허브
 
   /* ── 미니게임 ────────────────────────────────────────── */
   function startMinigame(item) {
-    const cfg = MINI_CONFIG.common;
+    const cfg = MINI_CONFIG[item?.rarity] || MINI_CONFIG.common;
     mini.cfg = cfg;
     mini.trackH = minigameTrack.clientHeight || 160;
     mini.zoneH  = Math.floor(mini.trackH * cfg.zoneRatio);
