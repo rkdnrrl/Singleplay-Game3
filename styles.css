@@ -875,6 +875,18 @@ html.minigame-active body {
   gap: 0.32rem;
 }
 
+.catch-stats {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  font-size: 0.72rem; padding: 0.35rem 0.2rem 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 0.4rem;
+}
+.cs-total    { color: rgba(255,255,255,0.55); }
+.cs-common   { color: #9e9e9e; }
+.cs-rare     { color: #42a5f5; }
+.cs-epic     { color: #ab47bc; }
+.cs-legendary{ color: #f5c518; }
+
 .inv-item {
   display: flex; align-items: center; gap: 0.45rem;
   padding: 0.28rem 0.45rem; border-radius: 8px;

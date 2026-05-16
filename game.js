@@ -1224,12 +1224,43 @@ USB허브
     },
   };
 
-  /** 등급별 출현 확률 (합계 1.0) */
+  // ── 낚시 스팟 ───────────────────────────────────────────────
+  const FISHING_SPOTS = [
+    { id: 'lake',    emoji: '🏞️', name: '호수',    rarityMod: { legendary: 1.0, epic: 1.0, rare: 1.0 }, desc: '균형잡힌 낚시터' },
+    { id: 'ocean',   emoji: '🌊', name: '심해',    rarityMod: { legendary: 1.8, epic: 1.4, rare: 1.2 }, desc: '전설 아이템 확률 ↑' },
+    { id: 'river',   emoji: '🌿', name: '강',      rarityMod: { legendary: 0.7, epic: 0.9, rare: 1.4 }, desc: '희귀 아이템 확률 ↑' },
+    { id: 'space',   emoji: '🌌', name: '우주해역', rarityMod: { legendary: 2.5, epic: 1.8, rare: 0.8 }, desc: '에픽·전설 ↑↑↑ (확률 낮음)' },
+  ];
+  let currentSpot = FISHING_SPOTS[0]; // 기본: 호수
+
+  function getTimeOfDayMod() {
+    const h = new Date().getHours();
+    // 새벽 (4~8): 전설 부스트
+    if (h >= 4  && h < 8)  return { legendary: 1.6, epic: 1.2, rare: 1.0, label: '🌅 새벽 — 전설 확률 ↑' };
+    // 오전 (8~12): 기본
+    if (h >= 8  && h < 12) return { legendary: 1.0, epic: 1.0, rare: 1.0, label: '☀️ 오전 — 기본' };
+    // 오후 (12~18): 에픽 부스트
+    if (h >= 12 && h < 18) return { legendary: 1.0, epic: 1.3, rare: 1.1, label: '🌤️ 오후 — 에픽 확률 ↑' };
+    // 황혼 (18~21): 희귀 부스트
+    if (h >= 18 && h < 21) return { legendary: 1.2, epic: 1.1, rare: 1.5, label: '🌆 황혼 — 희귀 확률 ↑' };
+    // 밤 (21~4): 전설·에픽 부스트
+    return { legendary: 2.0, epic: 1.5, rare: 0.9, label: '🌙 밤 — 전설 확률 ↑↑' };
+  }
+
+  /** 등급별 출현 확률 — 스팟 + 시간대 보정 적용 */
   function rollFishingRarity() {
-    const r = Math.random();
-    if (r < 0.03) return 'legendary';
-    if (r < 0.12) return 'epic';
-    if (r < 0.35) return 'rare';
+    const timeMod  = getTimeOfDayMod();
+    const spotMod  = currentSpot.rarityMod;
+    // 기본 확률
+    const baseL = 0.03, baseE = 0.09, baseR = 0.23, baseC = 0.65;
+    const modL = baseL * (timeMod.legendary || 1) * (spotMod.legendary || 1);
+    const modE = baseE * (timeMod.epic      || 1) * (spotMod.epic      || 1);
+    const modR = baseR * (timeMod.rare      || 1) * (spotMod.rare      || 1);
+    const total = modL + modE + modR + baseC;
+    const r = Math.random() * total;
+    if (r < modL)              return 'legendary';
+    if (r < modL + modE)       return 'epic';
+    if (r < modL + modE + modR) return 'rare';
     return 'common';
   }
 
@@ -1845,6 +1876,22 @@ USB허브
       sellAllBtn.classList.remove('hidden');
       sellAllBtn.textContent = `아이템 전부 팔기 · ${totalValue.toLocaleString()} 코인`;
     }
+
+    // 도감 통계 요약
+    const rarityCounts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    inventory.forEach(i => { if (rarityCounts[i.rarity] !== undefined) rarityCounts[i.rarity]++; });
+    let statsEl = inventoryList.parentElement?.querySelector('.catch-stats');
+    if (!statsEl) {
+      statsEl = document.createElement('div');
+      statsEl.className = 'catch-stats';
+      inventoryList.parentElement?.insertBefore(statsEl, inventoryList);
+    }
+    statsEl.innerHTML =
+      `<span class="cs-total">총 ${inventory.length}개 · ${totalValue.toLocaleString()}코인</span>` +
+      `<span class="cs-common">일반 ${rarityCounts.common}</span>` +
+      (rarityCounts.rare ? `<span class="cs-rare">희귀 ${rarityCounts.rare}</span>` : '') +
+      (rarityCounts.epic ? `<span class="cs-epic">에픽 ${rarityCounts.epic}</span>` : '') +
+      (rarityCounts.legendary ? `<span class="cs-legendary">전설 ${rarityCounts.legendary}</span>` : '');
 
     inventoryList.innerHTML = '';
     inventory.forEach((item, invIdx) => {
@@ -2462,6 +2509,75 @@ USB허브
     statusMsg.textContent = msg;
     statusMsg.classList.remove('hidden');
   }
+
+  /* ── 낚시 스팟 UI 삽입 ──────────────────────────────── */
+  (function initSpotUI() {
+    const wrap = document.createElement('div');
+    wrap.id = 'spotSelectorWrap';
+    wrap.style.cssText = [
+      'display:flex;flex-direction:column;align-items:center;gap:6px',
+      'margin:10px auto;max-width:420px',
+    ].join(';');
+
+    const timeMod = getTimeOfDayMod();
+    const timeLabel = document.createElement('div');
+    timeLabel.style.cssText = 'font-size:.8rem;color:#aaa;letter-spacing:.02em';
+    timeLabel.textContent = timeMod.label;
+    wrap.appendChild(timeLabel);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center';
+
+    function updateTimeLabel() {
+      timeLabel.textContent = getTimeOfDayMod().label;
+    }
+
+    FISHING_SPOTS.forEach(spot => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = [
+        'padding:5px 10px;border-radius:20px;font-size:.8rem;cursor:pointer',
+        'border:2px solid transparent;background:#1a1a2e;color:#ccc',
+        'transition:all .15s',
+      ].join(';');
+      btn.innerHTML = `${spot.emoji} ${spot.name}`;
+      btn.title = spot.desc;
+
+      function setActive(active) {
+        if (active) {
+          btn.style.borderColor = '#6366f1';
+          btn.style.color = '#a5b4fc';
+          btn.style.background = '#1e1b4b';
+        } else {
+          btn.style.borderColor = 'transparent';
+          btn.style.color = '#ccc';
+          btn.style.background = '#1a1a2e';
+        }
+      }
+
+      if (spot.id === currentSpot.id) setActive(true);
+
+      btn.addEventListener('click', () => {
+        currentSpot = spot;
+        btnRow.querySelectorAll('button').forEach(b => {
+          b.style.borderColor = 'transparent';
+          b.style.color = '#ccc';
+          b.style.background = '#1a1a2e';
+        });
+        setActive(true);
+        updateTimeLabel();
+      });
+
+      btnRow.appendChild(btn);
+    });
+
+    wrap.appendChild(btnRow);
+
+    // castBtn 바로 위에 삽입
+    if (castBtn && castBtn.parentNode) {
+      castBtn.parentNode.insertBefore(wrap, castBtn);
+    }
+  })();
 
   /* ── 이벤트 ──────────────────────────────────────────── */
   castBtn.addEventListener('click', () => {
