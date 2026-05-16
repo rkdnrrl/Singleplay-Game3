@@ -1298,6 +1298,26 @@ USB허브
   const urlParams   = new URLSearchParams(window.location.search);
   const alpToken    = urlParams.get('token');
   const platformApi = window.__ALP_PLATFORM_API__ || '';
+
+  /** 401 감지 → 로그아웃 배너 표시 (1회) */
+  let _sessionExpiredShown = false;
+  function showSessionExpiredBanner() {
+    if (_sessionExpiredShown) return;
+    _sessionExpiredShown = true;
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0 0 auto;z-index:99999;background:#dc2626;color:#fff;' +
+      'padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+    el.innerHTML = '<span>🔒 로그인이 만료됐습니다. 다시 로그인해 주세요.</span>' +
+      '<a href="/ko/login" style="background:#fff;color:#dc2626;padding:4px 12px;border-radius:6px;font-weight:600;text-decoration:none">로그인</a>';
+    document.body.prepend(el);
+  }
+  /** platformApi 대상 fetch 래퍼 — 401 자동 감지 */
+  function apiFetch(url, init) {
+    return fetch(url, init).then(res => {
+      if (res.status === 401 && alpToken) showSessionExpiredBanner();
+      return res;
+    });
+  }
   /** 플랫폼 미니게임 ID — `config.js`에서 `window.__ALP_CATCH_GAME_ID__ = 2` 등으로 덮어쓸 수 있음 */
   const catchGameId = (() => {
     const n = Number(window.__ALP_CATCH_GAME_ID__);
@@ -1321,7 +1341,7 @@ USB허브
 
   if (alpToken && platformApi) {
     // 내 정보 (코인)
-    fetch(`${platformApi}/api/auth/me`, {
+    apiFetch(`${platformApi}/api/auth/me`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -1335,7 +1355,7 @@ USB허브
       .catch(() => {});
 
     // 총 획득 개수
-    fetch(`${platformApi}/api/catches/stats`, {
+    apiFetch(`${platformApi}/api/catches/stats`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -1348,7 +1368,7 @@ USB허브
       .catch(() => {});
 
     // 적재함 로드 (미판매)
-    fetch(`${platformApi}/api/catches/inventory?limit=50`, {
+    apiFetch(`${platformApi}/api/catches/inventory?limit=50`, {
       headers: { Authorization: `Bearer ${alpToken}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -1691,7 +1711,7 @@ USB허브
     try {
       const ctrlGem = new AbortController();
       const tidGem = setTimeout(() => ctrlGem.abort(), 120000);
-      const resGem = await fetch(`${platformApi}/api/ai/fishing-common`, {
+      const resGem = await apiFetch(`${platformApi}/api/ai/fishing-common`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ rarity: item.rarity || 'common' }),
@@ -1730,7 +1750,7 @@ USB허브
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 120000);
-      const res = await fetch(`${platformApi}/api/ai/image`, {
+      const res = await apiFetch(`${platformApi}/api/ai/image`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -2025,7 +2045,7 @@ USB허브
     if (isSelling || !isLoggedIn || !alpToken || !platformApi) return;
     isSelling = true;
     try {
-      const res = await fetch(`${platformApi}/api/catches/sell`, {
+      const res = await apiFetch(`${platformApi}/api/catches/sell`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
         body: JSON.stringify({ ids: [catchId] }),
@@ -2047,7 +2067,7 @@ USB허브
     isSelling = true;
     if (sellAllBtn) sellAllBtn.disabled = true;
     try {
-      const res = await fetch(`${platformApi}/api/catches/sell`, {
+      const res = await apiFetch(`${platformApi}/api/catches/sell`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
         body: JSON.stringify({ ids }),
@@ -2386,7 +2406,7 @@ USB허브
         };
         if (pixelArtForServer) body.pixelArt = pixelArtForServer;
 
-        const res = await fetch(`${platformApi}/api/catches`, {
+        const res = await apiFetch(`${platformApi}/api/catches`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
