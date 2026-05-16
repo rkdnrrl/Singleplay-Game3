@@ -1183,8 +1183,8 @@ USB허브
       gainMul: 0.92,
       lossMul: 1.12,
       overlapNeed: 0.4,
-      gravityDown: 230,
-      gravityUp: -215,
+      gravityDown: 160,
+      gravityUp: -148,
     },
     rare: {
       zoneRatio: 0.26,
@@ -1195,8 +1195,8 @@ USB허브
       gainMul: 0.80,
       lossMul: 1.25,
       overlapNeed: 0.45,
-      gravityDown: 255,
-      gravityUp: -238,
+      gravityDown: 170,
+      gravityUp: -159,
     },
     epic: {
       zoneRatio: 0.20,
@@ -1207,8 +1207,8 @@ USB허브
       gainMul: 0.68,
       lossMul: 1.40,
       overlapNeed: 0.50,
-      gravityDown: 278,
-      gravityUp: -261,
+      gravityDown: 185,
+      gravityUp: -174,
     },
     legendary: {
       zoneRatio: 0.14,
@@ -1219,8 +1219,8 @@ USB허브
       gainMul: 0.55,
       lossMul: 1.60,
       overlapNeed: 0.55,
-      gravityDown: 300,
-      gravityUp: -285,
+      gravityDown: 200,
+      gravityUp: -190,
     },
   };
 
