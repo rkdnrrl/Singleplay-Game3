@@ -2223,42 +2223,6 @@ USB허브
     }
     const scanTotalMs = Math.round(performance.now() - scanT0);
 
-    let bonusGranted = false;
-    let scanBonusCoins = 0;
-    if (isLoggedIn && alpToken && platformApi) {
-      try {
-        const resB = await fetch(`${platformApi}/api/ai/fishing-scan-bonus`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${alpToken}`,
-          },
-          body: JSON.stringify({ scanElapsedMs: scanTotalMs }),
-        });
-        if (resB.ok) {
-          const bd = await resB.json();
-          if (bd.coins != null && Number.isFinite(Number(bd.coins))) {
-            totalCoins = Number(bd.coins);
-            updateCoinDisplay();
-          }
-          scanBonusCoins = Math.max(0, Math.floor(Number(bd.bonusCoins) || 0));
-          bonusGranted = scanBonusCoins > 0;
-        }
-      } catch {
-        /* 보너스 실패는 비치명 */
-      }
-    }
-
-    if (bonusGranted && isLoggedIn) {
-      if (scanCountdownLine) scanCountdownLine.classList.add('hidden');
-      if (scanOngoingLine) scanOngoingLine.classList.add('hidden');
-      if (scanBonusLine) {
-        const amt = scanBonusLine.querySelector('.scan-bonus-amount');
-        if (amt) amt.textContent = `+${scanBonusCoins.toLocaleString()}원`;
-        scanBonusLine.classList.remove('hidden');
-      }
-      await new Promise((r) => setTimeout(r, 2400));
-    }
     stopScanPanel();
     currentItem = item;
 
