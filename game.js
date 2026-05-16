@@ -85,7 +85,7 @@
   });
 
   /* ── 절차적 아이템 (희귀도 없음 — 표시·저장은 모두 일반) ─── */
-  const RARITY_LABEL = { common: '일반' };
+  const RARITY_LABEL = { common: '일반', rare: '희귀', epic: '에픽', legendary: '전설' };
 
   /** API·저장용 타입 코드 (표시명은 폐품·아이템 톤) */
   const UNIFIED_TYPE = 'scrap';
@@ -2205,9 +2205,11 @@ USB허브
     }
 
     state = 'RESULT';
+    const rolledRarity = currentItem?.rarity || 'common';
     startScanPanelCountdown(20);
     const scanT0 = performance.now();
     let item = rollProceduralCatchItem();
+    item.rarity = rolledRarity;
     let aiArtReady = false;
     try {
       const enriched = await enrichCatchItemWithAi(item);
@@ -2344,7 +2346,8 @@ USB허브
     stopScanPanel();
     stopStatusScanning();
     if (statusMsg) statusMsg.classList.add('hidden');
-    resultCard.className = 'result-card hidden rarity-common';
+    const rarity = item.rarity || 'common';
+    resultCard.className = `result-card hidden rarity-${rarity}`;
     if (!item.pixelArt) {
       item.pixelArt = await generateCatchPixelArt(item);
     }
@@ -2353,8 +2356,8 @@ USB허브
       mountPixelArt(resultSpriteHost, art, 128, 128);
     }
     if (resultRarity) {
-      resultRarity.className = 'result-rarity rarity-common';
-      resultRarity.textContent = RARITY_LABEL.common;
+      resultRarity.className = `result-rarity rarity-${rarity}`;
+      resultRarity.textContent = RARITY_LABEL[rarity] || rarity;
     }
     resultName.textContent  = item.name;
     resultSize.textContent  = `${item.size}kg`;
@@ -2377,7 +2380,7 @@ USB허브
           itemName:  item.name,
           itemEmoji: typeof item.emoji === 'string' ? item.emoji.slice(0, 10) : '',
           itemType:  item.type,
-          rarity:    'common',
+          rarity:    item.rarity || 'common',
           size:      item.size,
           coinValue: item.coins,
         };
@@ -2411,7 +2414,7 @@ USB허브
       name: item.name,
       type: item.type,
       size: item.size,
-      rarity: 'common',
+      rarity: item.rarity || 'common',
       coins: item.coins,
       pixelArt: localPixelArt,
     });
