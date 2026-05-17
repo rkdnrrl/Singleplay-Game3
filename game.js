@@ -2486,6 +2486,15 @@ USB허브
           serverLifetimeTotal = Number(lt);
         }
       } catch {}
+
+      // 일일 미션: 낚시
+      if (alpToken && platformApi) {
+        apiFetch(`${platformApi}/api/missions/daily/progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
+          body: JSON.stringify({ missionId: 'fish_3', increment: 1 }),
+        }).catch(() => {});
+      }
     }
 
     if (!item.pixelArt) {
