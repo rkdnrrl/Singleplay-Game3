@@ -1187,40 +1187,40 @@ USB허브
       gravityUp: -148,
     },
     rare: {
-      zoneRatio: 0.26,
-      speed: 80,
+      zoneRatio: 0.35,   // 존 더 크게
+      speed: 60,         // 속도 느리게
       erratic: true,
-      erraticChance: 0.022,
-      barRatio: 0.18,
-      gainMul: 0.80,
-      lossMul: 1.25,
-      overlapNeed: 0.45,
-      gravityDown: 170,
-      gravityUp: -159,
+      erraticChance: 0.012, // 불규칙 줄임
+      barRatio: 0.22,    // 바 더 크게
+      gainMul: 1.0,      // 게이지 빠르게
+      lossMul: 1.0,      // 감소 줄임
+      overlapNeed: 0.35, // 겹침 조건 완화
+      gravityDown: 140,
+      gravityUp: -130,
     },
     epic: {
-      zoneRatio: 0.20,
-      speed: 105,
+      zoneRatio: 0.28,
+      speed: 80,
       erratic: true,
-      erraticChance: 0.035,
-      barRatio: 0.15,
-      gainMul: 0.68,
-      lossMul: 1.40,
-      overlapNeed: 0.50,
-      gravityDown: 185,
-      gravityUp: -174,
+      erraticChance: 0.020,
+      barRatio: 0.18,
+      gainMul: 0.90,
+      lossMul: 1.10,
+      overlapNeed: 0.40,
+      gravityDown: 155,
+      gravityUp: -145,
     },
     legendary: {
-      zoneRatio: 0.14,
-      speed: 130,
+      zoneRatio: 0.22,
+      speed: 100,
       erratic: true,
-      erraticChance: 0.050,
-      barRatio: 0.12,
-      gainMul: 0.55,
-      lossMul: 1.60,
-      overlapNeed: 0.55,
-      gravityDown: 200,
-      gravityUp: -190,
+      erraticChance: 0.030,
+      barRatio: 0.15,
+      gainMul: 0.80,
+      lossMul: 1.20,
+      overlapNeed: 0.45,
+      gravityDown: 170,
+      gravityUp: -160,
     },
   };
 
