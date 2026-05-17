@@ -85,7 +85,7 @@
   });
 
   /* ── 절차적 아이템 (희귀도 없음 — 표시·저장은 모두 일반) ─── */
-  const RARITY_LABEL = { common: '일반', rare: '희귀', epic: '에픽', legendary: '전설' };
+  const RARITY_LABEL = { common: '일반', uncommon: '고급', rare: '희귀', epic: '에픽', legendary: '전설', mythic: '신화', divine: '신성' };
 
   /** API·저장용 타입 코드 (표시명은 폐품·아이템 톤) */
   const UNIFIED_TYPE = 'scrap';
@@ -1186,15 +1186,27 @@ USB허브
       gravityDown: 160,
       gravityUp: -148,
     },
-    rare: {
-      zoneRatio: 0.35,   // 존 더 크게
-      speed: 60,         // 속도 느리게
+    uncommon: {
+      zoneRatio: 0.34,
+      speed: 58,
       erratic: true,
-      erraticChance: 0.012, // 불규칙 줄임
-      barRatio: 0.22,    // 바 더 크게
-      gainMul: 1.0,      // 게이지 빠르게
-      lossMul: 1.0,      // 감소 줄임
-      overlapNeed: 0.35, // 겹침 조건 완화
+      erraticChance: 0.010,
+      barRatio: 0.21,
+      gainMul: 0.95,
+      lossMul: 1.08,
+      overlapNeed: 0.38,
+      gravityDown: 152,
+      gravityUp: -140,
+    },
+    rare: {
+      zoneRatio: 0.35,
+      speed: 60,
+      erratic: true,
+      erraticChance: 0.012,
+      barRatio: 0.22,
+      gainMul: 1.0,
+      lossMul: 1.0,
+      overlapNeed: 0.35,
       gravityDown: 140,
       gravityUp: -130,
     },
@@ -1222,45 +1234,76 @@ USB허브
       gravityDown: 170,
       gravityUp: -160,
     },
+    mythic: {
+      zoneRatio: 0.18,
+      speed: 120,
+      erratic: true,
+      erraticChance: 0.040,
+      barRatio: 0.13,
+      gainMul: 0.75,
+      lossMul: 1.28,
+      overlapNeed: 0.50,
+      gravityDown: 185,
+      gravityUp: -175,
+    },
+    divine: {
+      zoneRatio: 0.14,
+      speed: 140,
+      erratic: true,
+      erraticChance: 0.055,
+      barRatio: 0.11,
+      gainMul: 0.68,
+      lossMul: 1.38,
+      overlapNeed: 0.55,
+      gravityDown: 200,
+      gravityUp: -190,
+    },
   };
 
   // ── 낚시 스팟 ───────────────────────────────────────────────
   const FISHING_SPOTS = [
-    { id: 'factory', emoji: '🏭', name: '폐공장',   envClass: 'env-factory',  rarityMod: { legendary: 1.0, epic: 1.0, rare: 1.0 }, desc: '기본 — 균형잡힌 구역' },
-    { id: 'river',   emoji: '🌿', name: '오염된 강', envClass: 'env-river',    rarityMod: { legendary: 0.7, epic: 0.9, rare: 1.4 }, desc: '희귀 폐품 확률 ↑' },
-    { id: 'sewer',   emoji: '🚧', name: '하수도',   envClass: 'env-sewer',    rarityMod: { legendary: 1.2, epic: 1.3, rare: 1.1 }, desc: '에픽 폐품 확률 ↑' },
-    { id: 'junkyard',emoji: '🗑️', name: '쓰레기장', envClass: 'env-junkyard', rarityMod: { legendary: 2.5, epic: 1.8, rare: 0.8 }, desc: '전설 폐품 확률 ↑↑' },
+    { id: 'factory', emoji: '🏭', name: '폐공장',   envClass: 'env-factory',  rarityMod: { divine: 1.0, mythic: 1.0, legendary: 1.0, epic: 1.0, rare: 1.0, uncommon: 1.0 }, desc: '기본 — 균형잡힌 구역' },
+    { id: 'river',   emoji: '🌿', name: '오염된 강', envClass: 'env-river',    rarityMod: { divine: 0.6, mythic: 0.7, legendary: 0.7, epic: 0.9, rare: 1.4, uncommon: 1.3 }, desc: '고급·희귀 폐품 확률 ↑' },
+    { id: 'sewer',   emoji: '🚧', name: '하수도',   envClass: 'env-sewer',    rarityMod: { divine: 1.0, mythic: 1.2, legendary: 1.2, epic: 1.3, rare: 1.1, uncommon: 1.0 }, desc: '에픽·신화 폐품 확률 ↑' },
+    { id: 'junkyard',emoji: '🗑️', name: '쓰레기장', envClass: 'env-junkyard', rarityMod: { divine: 3.0, mythic: 2.2, legendary: 2.5, epic: 1.8, rare: 0.8, uncommon: 0.7 }, desc: '신성·신화·전설 확률 ↑↑' },
   ];
   let currentSpot = FISHING_SPOTS[0];
 
   function getTimeOfDayMod() {
     const h = new Date().getHours();
-    // 새벽 (4~8): 전설 부스트
-    if (h >= 4  && h < 8)  return { legendary: 1.6, epic: 1.2, rare: 1.0, label: '🌅 새벽 — 전설 확률 ↑' };
+    // 새벽 (4~8): 신성·전설 부스트
+    if (h >= 4  && h < 8)  return { divine: 1.8, mythic: 1.5, legendary: 1.6, epic: 1.2, rare: 1.0, uncommon: 1.0, label: '🌅 새벽 — 신성·전설 확률 ↑' };
     // 오전 (8~12): 기본
-    if (h >= 8  && h < 12) return { legendary: 1.0, epic: 1.0, rare: 1.0, label: '☀️ 오전 — 기본' };
+    if (h >= 8  && h < 12) return { divine: 1.0, mythic: 1.0, legendary: 1.0, epic: 1.0, rare: 1.0, uncommon: 1.0, label: '☀️ 오전 — 기본' };
     // 오후 (12~18): 에픽 부스트
-    if (h >= 12 && h < 18) return { legendary: 1.0, epic: 1.3, rare: 1.1, label: '🌤️ 오후 — 에픽 확률 ↑' };
-    // 황혼 (18~21): 희귀 부스트
-    if (h >= 18 && h < 21) return { legendary: 1.2, epic: 1.1, rare: 1.5, label: '🌆 황혼 — 희귀 확률 ↑' };
-    // 밤 (21~4): 전설·에픽 부스트
-    return { legendary: 2.0, epic: 1.5, rare: 0.9, label: '🌙 밤 — 전설 확률 ↑↑' };
+    if (h >= 12 && h < 18) return { divine: 1.0, mythic: 1.1, legendary: 1.0, epic: 1.3, rare: 1.1, uncommon: 1.1, label: '🌤️ 오후 — 에픽 확률 ↑' };
+    // 황혼 (18~21): 희귀·고급 부스트
+    if (h >= 18 && h < 21) return { divine: 1.2, mythic: 1.2, legendary: 1.2, epic: 1.1, rare: 1.5, uncommon: 1.4, label: '🌆 황혼 — 희귀 확률 ↑' };
+    // 밤 (21~4): 신화·전설 부스트
+    return { divine: 2.0, mythic: 2.0, legendary: 2.0, epic: 1.5, rare: 0.9, uncommon: 0.8, label: '🌙 밤 — 신성·신화·전설 확률 ↑↑' };
   }
 
   /** 등급별 출현 확률 — 스팟 + 시간대 보정 적용 */
   function rollFishingRarity() {
-    const timeMod  = getTimeOfDayMod();
-    const spotMod  = currentSpot.rarityMod;
-    // 기본 확률
-    const baseL = 0.03, baseE = 0.09, baseR = 0.23, baseC = 0.65;
+    const timeMod = getTimeOfDayMod();
+    const spotMod = currentSpot.rarityMod;
+    // 기본 확률: divine 1%, mythic 2.5%, legendary 4.5%, epic 9%, rare 18%, uncommon 25%, common 40%
+    const baseD  = 0.010, baseM  = 0.025, baseL = 0.045, baseE = 0.09, baseR = 0.18, baseU = 0.25, baseC = 0.40;
+    const modD = baseD * (timeMod.divine    || 1) * (spotMod.divine    || 1);
+    const modM = baseM * (timeMod.mythic    || 1) * (spotMod.mythic    || 1);
     const modL = baseL * (timeMod.legendary || 1) * (spotMod.legendary || 1);
     const modE = baseE * (timeMod.epic      || 1) * (spotMod.epic      || 1);
     const modR = baseR * (timeMod.rare      || 1) * (spotMod.rare      || 1);
-    const total = modL + modE + modR + baseC;
+    const modU = baseU * (timeMod.uncommon  || 1) * (spotMod.uncommon  || 1);
+    const total = modD + modM + modL + modE + modR + modU + baseC;
     const r = Math.random() * total;
-    if (r < modL)              return 'legendary';
-    if (r < modL + modE)       return 'epic';
-    if (r < modL + modE + modR) return 'rare';
+    let acc = 0;
+    if (r < (acc += modD)) return 'divine';
+    if (r < (acc += modM)) return 'mythic';
+    if (r < (acc += modL)) return 'legendary';
+    if (r < (acc += modE)) return 'epic';
+    if (r < (acc += modR)) return 'rare';
+    if (r < (acc += modU)) return 'uncommon';
     return 'common';
   }
 
@@ -1896,7 +1939,7 @@ USB허브
     }
 
     // 도감 통계 요약
-    const rarityCounts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    const rarityCounts = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0, mythic: 0, divine: 0 };
     inventory.forEach(i => { if (rarityCounts[i.rarity] !== undefined) rarityCounts[i.rarity]++; });
     let statsEl = inventoryList.parentElement?.querySelector('.catch-stats');
     if (!statsEl) {
@@ -1907,9 +1950,12 @@ USB허브
     statsEl.innerHTML =
       `<span class="cs-total">총 ${inventory.length}개 · ${totalValue.toLocaleString()}코인</span>` +
       `<span class="cs-common">일반 ${rarityCounts.common}</span>` +
-      (rarityCounts.rare ? `<span class="cs-rare">희귀 ${rarityCounts.rare}</span>` : '') +
-      (rarityCounts.epic ? `<span class="cs-epic">에픽 ${rarityCounts.epic}</span>` : '') +
-      (rarityCounts.legendary ? `<span class="cs-legendary">전설 ${rarityCounts.legendary}</span>` : '');
+      (rarityCounts.uncommon  ? `<span class="cs-uncommon">고급 ${rarityCounts.uncommon}</span>`   : '') +
+      (rarityCounts.rare      ? `<span class="cs-rare">희귀 ${rarityCounts.rare}</span>`           : '') +
+      (rarityCounts.epic      ? `<span class="cs-epic">에픽 ${rarityCounts.epic}</span>`           : '') +
+      (rarityCounts.legendary ? `<span class="cs-legendary">전설 ${rarityCounts.legendary}</span>` : '') +
+      (rarityCounts.mythic    ? `<span class="cs-mythic">신화 ${rarityCounts.mythic}</span>`       : '') +
+      (rarityCounts.divine    ? `<span class="cs-divine">신성 ${rarityCounts.divine}</span>`       : '');
 
     inventoryList.innerHTML = '';
     inventory.forEach((item, invIdx) => {

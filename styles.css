@@ -7,9 +7,12 @@
   --text-dim: rgba(232,234,246,0.5);
   --coin: #ffd54f;
   --common:   #78909c;
-  --rare:     #7c4dff;
-  --epic:     #ff6d00;
-  --legendary:#ffd700;
+  --uncommon: #4caf50;
+  --rare:     #2196f3;
+  --epic:     #9c27b0;
+  --legendary:#ff6d00;
+  --mythic:   #e91e63;
+  --divine:   #ffd700;
 }
 
 /* ── 환경 테마 ─────────────────────────────────────── */
@@ -679,11 +682,14 @@ html.minigame-active body {
   from { transform: translateX(-50%) scale(0.7) translateY(16px); opacity: 0; }
   to   { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
 }
-.result-card.rarity-common    { border-color: var(--common); box-shadow: 0 0 12px rgba(120,144,156,0.5); }
-.result-card.rarity-rare      { border-color: var(--rare);   box-shadow: 0 0 16px rgba(124,77,255,0.65); }
-.result-card.rarity-epic      { border-color: var(--epic);   box-shadow: 0 0 20px rgba(255,109,0,0.7); }
-.result-card.rarity-legendary {
-  border-color: var(--legendary);
+.result-card.rarity-common    { border-color: var(--common);   box-shadow: 0 0 12px rgba(120,144,156,0.5); }
+.result-card.rarity-uncommon  { border-color: var(--uncommon); box-shadow: 0 0 14px rgba(76,175,80,0.6); }
+.result-card.rarity-rare      { border-color: var(--rare);     box-shadow: 0 0 16px rgba(33,150,243,0.65); }
+.result-card.rarity-epic      { border-color: var(--epic);     box-shadow: 0 0 20px rgba(156,39,176,0.7); }
+.result-card.rarity-legendary { border-color: var(--legendary); box-shadow: 0 0 22px rgba(255,109,0,0.75); animation: result-pop 0.4s cubic-bezier(0.34,1.56,0.64,1), legendary-pulse 1.8s infinite 0.4s; }
+.result-card.rarity-mythic    { border-color: var(--mythic);   box-shadow: 0 0 24px rgba(233,30,99,0.8);  animation: result-pop 0.4s cubic-bezier(0.34,1.56,0.64,1), legendary-pulse 1.8s infinite 0.4s; }
+.result-card.rarity-divine    {
+  border-color: var(--divine);
   animation: result-pop 0.4s cubic-bezier(0.34,1.56,0.64,1), legendary-pulse 1.8s infinite 0.4s;
 }
 @keyframes legendary-pulse {
@@ -726,9 +732,12 @@ html.minigame-active body {
 }
 .result-rarity { font-size: 0.68rem; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; }
 .result-rarity.rarity-common    { color: var(--common); }
+.result-rarity.rarity-uncommon  { color: var(--uncommon); }
 .result-rarity.rarity-rare      { color: var(--rare); }
 .result-rarity.rarity-epic      { color: var(--epic); }
 .result-rarity.rarity-legendary { color: var(--legendary); }
+.result-rarity.rarity-mythic    { color: var(--mythic); }
+.result-rarity.rarity-divine    { color: var(--divine); }
 .result-name { font-family: "Jua", sans-serif; font-size: 1.05rem; }
 .result-size { font-size: 0.75rem; color: var(--text-dim); }
 .result-coins { font-family: "Jua", sans-serif; font-size: 1.15rem; color: var(--coin); white-space: nowrap; }
@@ -949,9 +958,12 @@ html.minigame-active body {
 }
 .cs-total    { color: rgba(255,255,255,0.55); }
 .cs-common   { color: #9e9e9e; }
-.cs-rare     { color: #42a5f5; }
-.cs-epic     { color: #ab47bc; }
-.cs-legendary{ color: #f5c518; }
+.cs-uncommon { color: #4caf50; }
+.cs-rare     { color: #2196f3; }
+.cs-epic     { color: #9c27b0; }
+.cs-legendary{ color: #ff6d00; }
+.cs-mythic   { color: #e91e63; }
+.cs-divine   { color: #ffd700; }
 
 .inv-item {
   display: flex; align-items: center; gap: 0.45rem;
@@ -961,9 +973,12 @@ html.minigame-active body {
   cursor: pointer;
 }
 .inv-item.rarity-common    { border-color: var(--common); }
+.inv-item.rarity-uncommon  { border-color: var(--uncommon); }
 .inv-item.rarity-rare      { border-color: var(--rare); }
 .inv-item.rarity-epic      { border-color: var(--epic); }
-.inv-item.rarity-legendary { border-color: var(--legendary); background: rgba(255,215,0,0.05); }
+.inv-item.rarity-legendary { border-color: var(--legendary); background: rgba(255,109,0,0.05); }
+.inv-item.rarity-mythic    { border-color: var(--mythic);    background: rgba(233,30,99,0.05); }
+.inv-item.rarity-divine    { border-color: var(--divine);    background: rgba(255,215,0,0.05); }
 
 .inv-thumb {
   flex-shrink: 0;
@@ -1060,9 +1075,12 @@ html.minigame-active body {
   border-left: 3px solid transparent;
 }
 .log-item.rarity-common    { border-color: var(--common); }
+.log-item.rarity-uncommon  { border-color: var(--uncommon); }
 .log-item.rarity-rare      { border-color: var(--rare); }
 .log-item.rarity-epic      { border-color: var(--epic); }
-.log-item.rarity-legendary { border-color: var(--legendary); background: rgba(255,215,0,0.05); }
+.log-item.rarity-legendary { border-color: var(--legendary); background: rgba(255,109,0,0.05); }
+.log-item.rarity-mythic    { border-color: var(--mythic);    background: rgba(233,30,99,0.05); }
+.log-item.rarity-divine    { border-color: var(--divine);    background: rgba(255,215,0,0.05); }
 
 .log-item-emoji { font-size: 1.3rem; }
 .log-item-name  { flex: 1; }
