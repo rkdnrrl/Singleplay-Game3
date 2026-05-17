@@ -1226,12 +1226,12 @@ USB허브
 
   // ── 낚시 스팟 ───────────────────────────────────────────────
   const FISHING_SPOTS = [
-    { id: 'lake',    emoji: '🏞️', name: '호수',    rarityMod: { legendary: 1.0, epic: 1.0, rare: 1.0 }, desc: '균형잡힌 낚시터' },
-    { id: 'ocean',   emoji: '🌊', name: '심해',    rarityMod: { legendary: 1.8, epic: 1.4, rare: 1.2 }, desc: '전설 아이템 확률 ↑' },
-    { id: 'river',   emoji: '🌿', name: '강',      rarityMod: { legendary: 0.7, epic: 0.9, rare: 1.4 }, desc: '희귀 아이템 확률 ↑' },
-    { id: 'space',   emoji: '🌌', name: '우주해역', rarityMod: { legendary: 2.5, epic: 1.8, rare: 0.8 }, desc: '에픽·전설 ↑↑↑ (확률 낮음)' },
+    { id: 'factory', emoji: '🏭', name: '폐공장',   envClass: 'env-factory',  rarityMod: { legendary: 1.0, epic: 1.0, rare: 1.0 }, desc: '기본 — 균형잡힌 구역' },
+    { id: 'river',   emoji: '🌿', name: '오염된 강', envClass: 'env-river',    rarityMod: { legendary: 0.7, epic: 0.9, rare: 1.4 }, desc: '희귀 폐품 확률 ↑' },
+    { id: 'sewer',   emoji: '🚧', name: '하수도',   envClass: 'env-sewer',    rarityMod: { legendary: 1.2, epic: 1.3, rare: 1.1 }, desc: '에픽 폐품 확률 ↑' },
+    { id: 'junkyard',emoji: '🗑️', name: '쓰레기장', envClass: 'env-junkyard', rarityMod: { legendary: 2.5, epic: 1.8, rare: 0.8 }, desc: '전설 폐품 확률 ↑↑' },
   ];
-  let currentSpot = FISHING_SPOTS[0]; // 기본: 호수
+  let currentSpot = FISHING_SPOTS[0];
 
   function getTimeOfDayMod() {
     const h = new Date().getHours();
@@ -2559,6 +2559,9 @@ USB허브
 
       btn.addEventListener('click', () => {
         currentSpot = spot;
+        // 기존 env-* 클래스 제거 후 새 클래스 적용
+        document.documentElement.classList.forEach(c => { if (c.startsWith('env-')) document.documentElement.classList.remove(c); });
+        if (spot.envClass) document.documentElement.classList.add(spot.envClass);
         btnRow.querySelectorAll('button').forEach(b => {
           b.style.borderColor = 'transparent';
           b.style.color = '#ccc';
@@ -2571,6 +2574,8 @@ USB허브
       btnRow.appendChild(btn);
     });
 
+    // 초기 환경 적용
+    if (currentSpot.envClass) document.documentElement.classList.add(currentSpot.envClass);
     wrap.appendChild(btnRow);
 
     // castBtn 바로 위에 삽입

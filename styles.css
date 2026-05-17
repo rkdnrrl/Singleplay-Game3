@@ -12,6 +12,50 @@
   --legendary:#ffd700;
 }
 
+/* ── 환경 테마 ─────────────────────────────────────── */
+/* 기본(폐공장): --bg already #08081a */
+
+html.env-factory {
+  --bg: #0f0d0a;
+  --beam-color: rgba(255, 160, 50, 0.85);
+  --lure-from: #ffd54f; --lure-to: #e65100;
+  --lure-glow: rgba(255,160,50,0.9);
+  --planet-from: #4e342e; --planet-to: #1c0a00;
+  --planet-glow: rgba(180,80,20,0.35);
+  --cast-from: #5d2a00; --cast-to: #ff8f00;
+  --status-color: #ffab40;
+}
+html.env-river {
+  --bg: #071510;
+  --beam-color: rgba(102,255,153,0.85);
+  --lure-from: #b9f6ca; --lure-to: #00695c;
+  --lure-glow: rgba(100,255,150,0.9);
+  --planet-from: #2e7d32; --planet-to: #003300;
+  --planet-glow: rgba(50,180,80,0.35);
+  --cast-from: #003320; --cast-to: #00e676;
+  --status-color: #69f0ae;
+}
+html.env-sewer {
+  --bg: #0a0d08;
+  --beam-color: rgba(180,255,80,0.85);
+  --lure-from: #e6ee9c; --lure-to: #558b2f;
+  --lure-glow: rgba(180,255,80,0.9);
+  --planet-from: #33691e; --planet-to: #1b3800;
+  --planet-glow: rgba(130,200,30,0.35);
+  --cast-from: #1b3800; --cast-to: #c6ff00;
+  --status-color: #ccff90;
+}
+html.env-junkyard {
+  --bg: #0d0a0d;
+  --beam-color: rgba(200,150,255,0.85);
+  --lure-from: #e1bee7; --lure-to: #6a1b9a;
+  --lure-glow: rgba(200,140,255,0.9);
+  --planet-from: #4a148c; --planet-to: #1a0030;
+  --planet-glow: rgba(150,80,220,0.35);
+  --cast-from: #2d0050; --cast-to: #ce93d8;
+  --status-color: #ce93d8;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
@@ -78,8 +122,8 @@ html.minigame-active body {
 .planet {
   position: absolute; top: -10px; right: -20px;
   width: 110px; height: 110px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #5c6bc0, #1a237e 60%, #000051);
-  box-shadow: 0 0 40px rgba(92,107,192,0.35);
+  background: radial-gradient(circle at 35% 35%, var(--planet-from, #5c6bc0), var(--planet-to, #1a237e) 60%, #000051);
+  box-shadow: 0 0 40px var(--planet-glow, rgba(92,107,192,0.35));
   opacity: 0.45; pointer-events: none;
   animation: planet-drift 50s ease-in-out infinite alternate;
 }
@@ -110,18 +154,18 @@ html.minigame-active body {
 }
 .beam-line {
   width: 3px; height: 0;
-  background: linear-gradient(to bottom, rgba(100,181,246,0.9), transparent);
+  background: linear-gradient(to bottom, var(--beam-color, rgba(100,181,246,0.9)), transparent);
   border-radius: 2px;
   transition: height 0.35s ease;
-  box-shadow: 0 0 8px rgba(100,181,246,0.5);
+  box-shadow: 0 0 8px var(--beam-color, rgba(100,181,246,0.5));
 }
 .beam-line.extended { height: 70px; }
 .lure {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 32%, #90caf9, #1565c0 72%);
-  box-shadow: 0 0 10px rgba(100, 181, 246, 0.95);
+  background: radial-gradient(circle at 32% 32%, var(--lure-from, #90caf9), var(--lure-to, #1565c0) 72%);
+  box-shadow: 0 0 10px var(--lure-glow, rgba(100,181,246,0.95));
   transition: transform 0.3s;
 }
 .lure.biting { animation: lure-shake 0.25s infinite; }
@@ -135,17 +179,17 @@ html.minigame-active body {
 .cast-btn {
   font-family: "Jua", sans-serif; font-size: 1.1rem;
   padding: 0.7rem 2rem; border: none; border-radius: 50px;
-  background: linear-gradient(135deg, #1565c0, #4fc3f7);
+  background: linear-gradient(135deg, var(--cast-from, #1565c0), var(--cast-to, #4fc3f7));
   color: #fff; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(79,195,247,0.4);
+  box-shadow: 0 4px 20px var(--cast-to, rgba(79,195,247,0.4));
   touch-action: manipulation; transition: transform 0.1s, box-shadow 0.1s;
 }
 .cast-btn:active { transform: scale(0.95); box-shadow: none; }
 
 .status-msg {
   font-family: "Jua", sans-serif; font-size: 1rem;
-  color: #80deea; text-align: center;
-  text-shadow: 0 0 12px rgba(128,222,234,0.6);
+  color: var(--status-color, #80deea); text-align: center;
+  text-shadow: 0 0 12px var(--status-color, rgba(128,222,234,0.6));
   min-height: 1.5rem;
 }
 
