@@ -2335,10 +2335,19 @@ USB허브
     mini.progress = 0.5;
     mini.pressing = false;
     mini.targetVY = cfg.speed * (Math.random() < 0.5 ? 1 : -1);
+    mini.readyUntil = performance.now() + 1000; // 1초 준비 시간
     mini.lastTime = performance.now();
 
     catchProgressFill.classList.remove('danger');
     renderMinigame();
+
+    // 준비 오버레이 표시
+    const overlay = document.getElementById('minigameReadyOverlay');
+    const readyText = document.getElementById('minigameReadyText');
+    if (overlay) {
+      overlay.classList.remove('hidden');
+      if (readyText) readyText.textContent = '무언가 걸렸다!\n잡을 준비!';
+    }
 
     if (mini.rafId) cancelAnimationFrame(mini.rafId);
     setMinigameScrollLocked(true);
@@ -2346,6 +2355,19 @@ USB허브
   }
 
   function miniLoop(now) {
+    // 준비 시간 중: 오버레이 표시, 움직임 없음
+    if (mini.readyUntil && now < mini.readyUntil) {
+      mini.lastTime = now;
+      mini.rafId = requestAnimationFrame(miniLoop);
+      return;
+    }
+    // 준비 시간 끝: 오버레이 숨기기
+    if (mini.readyUntil) {
+      mini.readyUntil = null;
+      const overlay = document.getElementById('minigameReadyOverlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+
     const dt = Math.min((now - mini.lastTime) / 1000, 0.05);
     mini.lastTime = now;
     const cfg = mini.cfg;
