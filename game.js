@@ -1329,6 +1329,24 @@ USB허브
   const urlParams   = new URLSearchParams(window.location.search);
   const alpToken    = urlParams.get('token');
   const platformApi = window.__ALP_PLATFORM_API__ || '';
+  const platformWeb = urlParams.get('platformWeb') || '';
+
+  // 웹으로 돌아가기 버튼
+  if (platformWeb) {
+    const btn = document.createElement('a');
+    btn.href = platformWeb + '/games';
+    btn.textContent = '← 게임 목록';
+    btn.style.cssText = [
+      'position:fixed;top:12px;left:12px;z-index:9999',
+      'background:rgba(255,255,255,0.08);color:#aaa',
+      'border:1px solid rgba(255,255,255,0.15);border-radius:20px',
+      'padding:5px 12px;font-size:0.78rem;text-decoration:none',
+      'backdrop-filter:blur(6px);transition:background .15s',
+    ].join(';');
+    btn.onmouseover = () => { btn.style.background = 'rgba(255,255,255,0.18)'; btn.style.color = '#fff'; };
+    btn.onmouseout  = () => { btn.style.background = 'rgba(255,255,255,0.08)'; btn.style.color = '#aaa'; };
+    document.body.appendChild(btn);
+  }
 
   /** 401 감지 → 로그아웃 배너 표시 (1회) */
   let _sessionExpiredShown = false;
@@ -2584,11 +2602,38 @@ USB허브
     }
   })();
 
+  /* ── 낚시 비용 ──────────────────────────────────────── */
+  const CAST_COST = 10; // 1회 캐스트 비용 (코인)
+
+  async function trySpendAndCast() {
+    // 비로그인: 무료
+    if (!alpToken || !platformApi) { goCasting(); return; }
+    try {
+      const res = await apiFetch(`${platformApi}/api/coins/spend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${alpToken}` },
+        body: JSON.stringify({ amount: CAST_COST }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showStatus(data?.error?.message || `코인이 부족합니다. (필요: ${CAST_COST}코인)`);
+        return;
+      }
+      const data = await res.json();
+      // HUD 코인 즉시 반영
+      if (coinCountEl && data.coins != null) coinCountEl.textContent = Number(data.coins).toLocaleString();
+      goCasting();
+    } catch {
+      // 네트워크 오류 시 무료로 진행
+      goCasting();
+    }
+  }
+
   /* ── 이벤트 ──────────────────────────────────────────── */
   castBtn.addEventListener('click', () => {
     const S = window.__ALP_GAME_SOUND__;
     if (S && typeof S.tryStartMainBgm === 'function') void S.tryStartMainBgm();
-    if (state === 'IDLE') goCasting();
+    if (state === 'IDLE') void trySpendAndCast();
   });
 
   // 적재함: 팔기 버튼 / 그 외 영역 클릭 → 픽셀 확대 보기
